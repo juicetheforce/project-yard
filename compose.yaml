@@ -1,0 +1,17 @@
+# Runs the published image. On the host this file sits next to config.toml and .env;
+# nothing else from the repo is needed. To update, change the version below (README → Updating).
+# For a local build instead, see compose.build.yaml.
+services:
+  project-dashboard:
+    image: ghcr.io/juicetheforce/project-yard:v0.2
+    container_name: project-dashboard
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    env_file: .env
+    volumes:
+      - ./config.toml:/config/config.toml:ro
+      - dashboard-data:/data
+
+volumes:
+  dashboard-data:

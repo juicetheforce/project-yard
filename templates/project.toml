@@ -1,0 +1,13 @@
+# .project.toml — read by the Project yard dashboard. Commit it at the repo root.
+
+name = "Project name"        # optional; defaults to the repo name
+summary = "One line on what this is."
+stage = "idea"               # idea | scoping | design | building | testing | live
+next = "The very next concrete step."
+category = "Personal"        # free text: Work, Personal, Homelab, Games...
+paused = false
+focus = false
+# notes = """
+# Optional. Shown on the dashboard's detail page. Decisions, constraints,
+# anything worth seeing at a glance. Line breaks are kept.
+# """

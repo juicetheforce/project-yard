@@ -1,0 +1,47 @@
+# Builds the container image for each release tag (v0.2, v0.3, ...) and publishes it as
+# ghcr.io/<owner>/project-yard:<tag> and :latest. See README → Releasing.
+name: Release image
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # compose.yaml pins the image version; a release whose compose.yaml points at a
+      # different version would deploy the wrong image, so refuse to publish it.
+      - name: Check compose.yaml matches the tag
+        run: |
+          grep -q "image: ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}$" compose.yaml \
+            || { echo "compose.yaml doesn't reference :${GITHUB_REF_NAME}; bump it before tagging."; exit 1; }
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,25 @@
+# Copy to config.toml and edit.
+
+refresh_minutes = 15   # how often to poll GitHub
+stale_days = 30        # when "last commit" and "stage set" turn amber
+
+# One [[sources]] block per GitHub user or organization.
+# Each gets its own token, because a fine-grained token belongs to exactly one account or org.
+[[sources]]
+owner = "your-github-user"
+token_env = "GH_TOKEN_PERSONAL"   # name of the variable in .env holding the token
+
+# An organization works the same way:
+# [[sources]]
+# owner = "your-org"
+# token_env = "GH_TOKEN_ORG"
+
+# GitHub Enterprise Server: add api_url = "https://github.example.com/api/graphql" to that source.
+
+[filters]
+include_archived = false
+include_forks = false
+# Repos to leave off the board entirely, as owner/name.
+exclude = [
+  "your-github-user/your-github-user",   # profile README repo, if you have one
+]

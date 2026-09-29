@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project yard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+<style>
+/* Design: docs/design/ (Nocturne tokens, Project yard v2 mockups). Dark only. */
+:root{
+  color-scheme:dark;
+  --color-bg:#161826; --color-surface:#232532; --color-text:#e9e9ed;
+  --color-accent:#9184d9;
+  --color-divider:color-mix(in srgb,#e9e9ed 16%,transparent);
+  --color-rule:color-mix(in srgb,#e9e9ed 8%,transparent);
+  --color-neutral-300:#cfd3e5; --color-neutral-400:#b2b6ca; --color-neutral-500:#9397ab;
+  --color-neutral-600:#75798c; --color-neutral-700:#595d6c; --color-neutral-800:#3f424d;
+  --color-accent-200:#e7e5fe; --color-accent-300:#d2cefd; --color-accent-400:#b5abfc; --color-accent-500:#968ae0;
+  --color-accent-600:#796cbf; --color-accent-700:#5d5294; --color-accent-800:#423a6a; --color-accent-900:#2b2741;
+  --color-error:oklch(0.74 0.13 25); --color-warn:oklch(0.8 0.1 80);
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --radius-sm:4px; --radius-md:8px;
+  --shadow-sm:0 0 0 1px #3f424d;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font:14px/1.45 var(--font);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+a{color:var(--color-accent);text-underline-offset:3px}
+a:hover{color:var(--color-accent-400)}
+button,select{font:inherit;color:inherit}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+::selection{background:color-mix(in srgb,var(--color-accent) 30%,transparent)}
+h1{font-weight:500;letter-spacing:-0.015em;line-height:1.12}
+.muted{color:var(--color-neutral-500)}
+.faint{color:var(--color-neutral-600)}
+.error{color:var(--color-error)}
+.warn{color:var(--color-warn)}
+.nostage{color:var(--color-accent-300)}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tag{display:inline-flex;align-items:center;font-size:11px;letter-spacing:.02em;padding:3px 10px;border-radius:6px;background:var(--color-neutral-800);color:#f3f5fe}
+.tag.outline{background:none;border:1px solid var(--color-neutral-700);color:var(--color-neutral-400)}
+.tag.sm{font-size:10px;padding:1px 7px}
+.dot{border-radius:50%;flex:none;display:inline-block}
+.focusdot{width:6px;height:6px;background:var(--color-accent);box-shadow:0 0 6px var(--color-accent)}
+/* Rules fade to transparent at the ends (Nocturne). */
+.rule{background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom/100% 1px}
+.rule:hover{background:linear-gradient(var(--color-surface),var(--color-surface)) no-repeat 0 0/100% 100%,linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom/100% 1px}
+.btn{cursor:pointer;background:transparent;border:1px solid var(--color-accent);color:var(--color-accent);border-radius:var(--radius-md);padding:6px 10px;font-weight:500}
+.btn:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
+select.input{min-height:30px;padding:3px 8px;font-size:12.5px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md)}
+select.input:hover{border-color:color-mix(in srgb,var(--color-text) 45%,transparent)}
+select.input option{background:var(--color-surface)}
+
+/* stage rail: small (rows) and large (detail) */
+.rail{display:flex;align-items:center}
+.rail .step{display:flex;align-items:center}
+.rail .step+.step{flex:1}
+.rail .conn{flex:1;height:1px}
+.node{border-radius:50%;flex:none;border-width:1.5px}
+.rail.md{height:10px}.rail.md .node{width:10px;height:10px}
+.rail.sm{height:8px}.rail.sm .node{width:7px;height:7px;border-width:1px}
+.node.done{background:var(--color-neutral-500);border-style:solid;border-color:var(--color-neutral-500)}
+.node.now{background:var(--color-accent);border-style:solid;border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-900),0 0 10px var(--color-accent-600)}
+.rail.sm .node.now{box-shadow:0 0 0 2px var(--color-accent-900),0 0 6px var(--color-accent-600)}
+.node.todo{border-style:solid;border-color:var(--color-neutral-700)}
+.node.none{border-style:dashed;border-color:var(--color-accent-600)}
+.node.bad{border-style:dotted;border-color:var(--color-error)}
+.conn.done{background:var(--color-neutral-500)}
+.conn.todo,.conn.bad{background:var(--color-neutral-800)}
+.conn.none{background:var(--color-accent-900)}
+
+.bars{display:flex;align-items:flex-end;gap:2px}
+.bars span{flex:1;border-radius:1px;background:var(--color-neutral-800)}
+.bars .on{background:var(--color-neutral-500)}
+.bars .hot{background:var(--color-accent-500)}
+.bars .old.on{background:var(--color-neutral-700)}
+.bars .recent.on{background:var(--color-neutral-400)}
+.bars .unknown{background:repeating-linear-gradient(to right,var(--color-neutral-800) 0 2px,transparent 2px 4px)}
+
+/* ---------------------------------------------------------------- overview */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding:14px 24px 6px}
+.brand{font-weight:500;font-size:17px;margin-right:auto;letter-spacing:-0.01em}
+.sources{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:12px;color:var(--color-neutral-500)}
+.sources .src{display:inline-flex;align-items:center;gap:6px}
+.sources .dot{width:6px;height:6px;background:var(--color-neutral-400)}
+.sources .dot.bad{background:var(--color-error)}
+.banner{margin:8px 24px 0;display:flex;flex-direction:column;gap:2px;padding:8px 12px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-sm);font-size:13px;max-width:1200px}
+.banner .rest{color:var(--color-neutral-400)}
+
+.strip{padding:20px 24px 4px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:flex-end}
+.strip .sep{width:1px;height:38px;background:var(--color-neutral-800);margin-bottom:4px}
+.cell{cursor:pointer;text-align:left;background:transparent;border:0;border-radius:var(--radius-md);padding:6px 12px 7px;min-width:64px;display:flex;flex-direction:column;gap:5px}
+.cell:hover{background:var(--color-surface)}
+.cell .n{font-weight:500;font-size:22px;line-height:1}
+.cell.big .n{font-size:30px}
+.cell .l{font-size:11px;line-height:1.2;color:var(--color-neutral-500)}
+.cell.zero .n{color:var(--color-neutral-600)}
+.cell[aria-pressed=true]{background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-700)}
+.cell[aria-pressed=true] .n{color:var(--color-accent-200)}
+.cell[aria-pressed=true] .l{color:var(--color-accent-300)}
+
+.controls{padding:10px 24px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;max-width:1600px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips .sep{width:1px;height:18px;margin:0 4px;background:var(--color-neutral-800)}
+.chip{font-size:12.5px;line-height:1;padding:6px 10px;border-radius:var(--radius-md);cursor:pointer;background:transparent;color:var(--color-neutral-400);border:1px solid var(--color-neutral-800);display:inline-flex;gap:6px;align-items:center}
+.chip:hover{border-color:var(--color-neutral-500)}
+.chip span{opacity:.55;font-size:11px}
+.chip[aria-pressed=true]{background:var(--color-accent-900);color:var(--color-accent-200);border-color:var(--color-accent-700)}
+.sort{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-500)}
+
+.list{padding:0 24px 48px;display:flex;flex-direction:column}
+.group{font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:16px 10px 4px;display:flex;align-items:center;gap:8px;color:var(--color-neutral-500)}
+.group::before{content:"";width:14px;height:1px;background:currentColor}
+.group.focus{color:var(--color-accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px 28px;padding:11px 10px 12px;color:inherit;text-decoration:none;border-radius:var(--radius-md)}
+.row:hover{color:inherit}
+.dim{opacity:.5}
+.row .who{flex:1 1 240px;max-width:380px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row .title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.3}
+.row .name{font-weight:500;font-size:15px}
+.row .priv{font-size:10.5px;color:var(--color-neutral-600);letter-spacing:.04em}
+.row .summary{font-size:12.5px;color:var(--color-neutral-400)}
+.row .meta{font-size:12px;color:var(--color-neutral-500);display:flex;gap:4px 10px;flex-wrap:wrap}
+.row .next{flex:2 1 280px;max-width:640px;min-width:0;padding-top:1px}
+.row .next .k{font-size:11px;color:var(--color-neutral-600);line-height:1.3;margin-bottom:2px}
+.row .next .v{font-size:14px;line-height:1.35;text-wrap:pretty}
+.row .stage{flex:0 0 180px;display:flex;flex-direction:column;gap:7px;padding-top:7px}
+.row .stage .lbl{font-size:12px;display:flex;justify-content:space-between;gap:8px;line-height:1.2}
+.row .stage .sub{color:var(--color-neutral-600);font-size:11px;white-space:nowrap}
+.row .spark{flex:0 0 auto;min-width:90px;display:flex;flex-direction:column;gap:5px;padding-top:3px}
+.row .spark .bars{height:22px}
+.row .spark .cap{white-space:nowrap;font-size:11px;color:var(--color-neutral-500);line-height:1.2}
+.row .last{flex:1 1 190px;max-width:280px;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:3px;font-size:12px;line-height:1.35}
+.kv{display:flex;justify-content:space-between;gap:8px}
+.kv>:first-child{color:var(--color-neutral-500)}
+.row .issues{display:none;flex:2 1 320px;max-width:720px;min-width:0;flex-direction:column;gap:3px;padding-top:3px;font-size:12px;line-height:1.35}
+.row .issues .i{display:flex;gap:10px;min-width:0}
+@media (min-width:2400px){.row .issues{display:flex}}
+.empty{padding:56px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.empty .h{font-weight:500;font-size:17px}
+
+/* ---------------------------------------------------------------- compact (KDE panel popup, ~420px) */
+.c-top{display:flex;align-items:center;gap:10px;padding:10px 12px 8px}
+.c-top .brand{font-size:14px}
+.seg{display:inline-flex;overflow:hidden;border:1px solid var(--color-divider);border-radius:var(--radius-sm)}
+.seg button{background:none;border:0;padding:3px 9px;font-size:11.5px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--color-divider)}
+.seg button[aria-pressed=true]{color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+.seg button:not([aria-pressed=true]):hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
+.c-err{margin:0 12px 6px;padding:5px 9px;border-radius:var(--radius-sm);background:var(--color-surface);font-size:11.5px;color:var(--color-error)}
+.c-list{padding:0 6px 8px;display:flex;flex-direction:column}
+.c-list .group{font-size:10px;padding:8px 6px 3px;gap:6px}
+.c-list .group::before{width:10px}
+.c-row{display:grid;grid-template-columns:minmax(0,1fr) 78px 42px;gap:2px 10px;align-items:center;padding:6px 6px 7px;border-radius:var(--radius-sm);color:inherit;text-decoration:none}
+.c-row:hover{color:inherit}
+.c-row .l1{display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3}
+.c-row .focusdot{width:5px;height:5px;box-shadow:0 0 5px var(--color-accent)}
+.c-row .name{font-weight:500;font-size:13px}
+.c-row .st{font-size:11px;white-space:nowrap}
+.c-row .ago{font-size:11px;text-align:right}
+.c-row .l2{grid-column:1/-1;display:flex;gap:8px;min-width:0;font-size:12px;line-height:1.3}
+
+/* ---------------------------------------------------------------- detail */
+.detail{max-width:1600px;padding:14px 24px 56px}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;padding:4px 6px 4px 0}
+.d-head{margin-top:20px;display:flex;flex-wrap:wrap;gap:14px 40px;align-items:flex-start}
+.d-id{flex:1 1 340px;min-width:0}
+.d-id .title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.d-id h1{font-size:30px;margin:0}
+.d-id .focusdot{width:8px;height:8px;box-shadow:0 0 8px var(--color-accent)}
+.d-id p{font-size:15px;color:var(--color-neutral-300);margin:8px 0;max-width:64ch;text-wrap:pretty}
+.d-id .links{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px}
+.d-id .links a{text-decoration:none}
+.stats{flex:0 1 460px;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 20px}
+.stats dt{font-size:11px;color:var(--color-neutral-500)}
+.stats dd{margin:2px 0 0;font-weight:500;font-size:22px;line-height:1.1;white-space:nowrap}
+.dgrid{margin-top:24px;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:stretch}
+@media (min-width:1000px){.dgrid{grid-template-columns:3fr 3fr 2fr}.span2{grid-column:span 2}}
+.panel{background:var(--color-surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel .ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel .ph .t{font-weight:500;font-size:15px}
+.panel .ph .c{margin-left:auto;font-size:12px;color:var(--color-neutral-500)}
+.panel .none{font-size:13px;color:var(--color-neutral-600)}
+.stagepanel{gap:18px;padding-bottom:20px}
+.stagehead{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.stagehead .big{font-weight:500;font-size:20px}
+.stagehead .why{font-size:12.5px;color:var(--color-neutral-500)}
+.stagehead .mono{font-family:ui-monospace,monospace;color:var(--color-neutral-400)}
+.bigrail{position:relative;display:flex;padding-top:2px;max-width:720px}
+.bigrail .line{position:absolute;left:calc(100%/12);right:calc(100%/12);top:8.5px;height:1px}
+.bigrail .s{flex:1;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:0}
+.bigrail .node{position:relative;width:14px;height:14px;border-width:1.5px}
+.bigrail .node.todo,.bigrail .node.none,.bigrail .node.bad{background:var(--color-surface)}
+.bigrail .lab{font-size:12px;color:var(--color-neutral-600);max-width:100%}
+.bigrail .lab.done{color:var(--color-neutral-400)}
+.bigrail .lab.now{color:var(--color-text)}
+.kicker{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px}
+.nextbig{font-size:17px;line-height:1.35;text-wrap:pretty;max-width:60ch}
+.notes{font-size:13.5px;line-height:1.5;color:var(--color-neutral-300);white-space:pre-line;text-wrap:pretty}
+.lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.lines li{display:flex;gap:14px;align-items:baseline;padding:6px 0;font-size:13px;background:linear-gradient(to right,transparent,var(--color-rule) 32px,var(--color-rule) calc(100% - 32px),transparent) no-repeat bottom/100% 1px}
+.lines a{color:var(--color-text);text-decoration:none}
+.lines a:hover{color:var(--color-accent-400)}
+.commits{max-height:340px;overflow-y:auto}
+.commits .date{flex:none;white-space:nowrap;color:var(--color-neutral-500);font-size:12px}
+.commits a{flex:1}
+.issuelist li{flex-wrap:wrap;gap:4px 12px;padding:7px 0}
+.issuelist a{flex:1 1 180px;min-width:0}
+.issuelist .labels{display:flex;gap:4px;flex-wrap:wrap}
+.issuelist .age{flex:none;color:var(--color-neutral-500);font-size:12px;min-width:40px;text-align:right}
+.more{font-size:12px}
+.side{display:flex;flex-direction:column;gap:16px}
+.activity{flex:1;gap:12px}
+.activity .bars{flex:1;min-height:64px}
+.activity .axis{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--color-neutral-600);flex-wrap:wrap}
+.activity .axis .mid{color:var(--color-neutral-400)}
+.repo dl{margin:0;display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 14px;font-size:13px}
+.repo dt{color:var(--color-neutral-500)}
+.repo dd{margin:0;min-width:0}
+.repo dd a.plain{color:var(--color-text);text-decoration:none}
+.repo .sub{color:var(--color-neutral-500);font-size:12px}
+.notfound{padding:48px 0}
+.notfound .h{font-weight:500;font-size:20px}
+
+@media (max-width:560px){
+  .detail{padding:10px 12px 32px}
+  .d-id h1{font-size:24px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel{padding:14px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+let DATA=/*__DATA__*/null;
+
+// ---------------------------------------------------------------- helpers
+const STAGE_LABEL={idea:'Idea',scoping:'Scoping',design:'Design',building:'Building',testing:'Testing',live:'Live'};
+const DAY=864e5;
+const COMPACT=matchMedia('(max-width:560px)');
+const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch{return null}};
+const ui={filter:ls('yard.filter')||'all',cat:ls('yard.cat')||'all',sort:ls('yard.sort')||'stage',cfilter:ls('yard.cfilter')||'all'};
+function setUi(k,v){ui[k]=v;ls('yard.'+k,v);render();}
+
+// Build DOM with text nodes only: commit messages and issue titles are untrusted.
+function h(tag,attrs,...kids){
+  const el=document.createElement(tag);
+  if(attrs)for(const[k,v]of Object.entries(attrs)){
+    if(v==null||v===false)continue;
+    if(k.startsWith('on'))el.addEventListener(k.slice(2),v);
+    else el.setAttribute(k,v===true?'':v);
+  }
+  for(const c of kids.flat()){if(c==null||c===false)continue;el.append(c.nodeType?c:document.createTextNode(String(c)));}
+  return el;
+}
+const hoursSince=d=>(Date.now()-new Date(d))/36e5;
+const daysSince=d=>d?Math.floor(hoursSince(d)/24):null;
+function ago(d){
+  if(!d)return '—';const hr=Math.floor(hoursSince(d));
+  if(hr<1)return 'just now';if(hr<24)return hr+'h ago';
+  const dd=Math.floor(hr/24);if(dd<90)return dd+'d ago';
+  const m=Math.floor(dd/30);return m<12?m+'mo ago':Math.floor(dd/365)+'y ago';
+}
+function short(d){
+  if(!d)return '—';const hr=Math.floor(hoursSince(d));
+  if(hr<1)return 'now';if(hr<24)return hr+'h';const dd=Math.floor(hr/24);
+  return dd<90?dd+'d':dd<730?Math.floor(dd/30)+'mo':Math.floor(dd/365)+'y';
+}
+const isoDate=d=>d?new Date(d).toLocaleDateString('en-CA'):'—';
+const clock=d=>new Date(d).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const when=d=>daysSince(d)<1?clock(d):isoDate(d)+' '+clock(d);
+const plural=(n,w)=>n+' '+w+(n===1?'':'s');
+const sentence=s=>/[.!?]$/.test(s)?s:s+'.';
+
+// ---------------------------------------------------------------- project model
+function enrich(p){
+  const idx=DATA.stages.indexOf(p.stage);
+  const hasStage=idx>=0, bad=!!p.stageError, noStage=!hasStage&&!bad;
+  const last=p.lastCommit, lastDays=last?daysSince(last.date):null;
+  const quiet=lastDays!=null&&lastDays>=DATA.staleDays&&!p.archived&&!p.paused;
+  const stale=hasStage&&last&&p.stageUpdated&&daysSince(p.stageUpdated)>DATA.staleDays&&new Date(last.date)>new Date(p.stageUpdated);
+  // The stage column already says "No stage file" / "Invalid stage", and archived/paused
+  // have their own tags, so the flag only carries what isn't shown elsewhere in the row.
+  let flag=null,flagClass='warn';
+  if(!last)flag='No commits yet';
+  else if(quiet)flag='Quiet · '+lastDays+'d';
+  else if(stale)flag='Stage may be out of date';
+  const stageLabel=hasStage?STAGE_LABEL[p.stage]:noStage?'No stage file':'Invalid stage';
+  return {...p,idx,hasStage,bad,noStage,lastDays,quiet,stale,flag,flagClass,stageLabel,
+    stageClass:hasStage?'':noStage?'nostage':'error',
+    stageSub:hasStage?(p.stageUpdated?'changed '+ago(p.stageUpdated):''):noStage?'to do':'see file',
+    nextText:p.next||(noStage?'Set in the stage file':'No next step'),
+    lastClass:quiet||!last?'warn':'',
+    href:'#/'+p.id};
+}
+const projects=()=>DATA.projects.map(enrich);
+
+function railSteps(p){
+  return DATA.stages.map((s,i)=>{
+    const st=p.hasStage?(i<p.idx?'done':i===p.idx?'now':'todo'):p.bad?'bad':'none';
+    const conn=p.hasStage?(i<=p.idx?'done':'todo'):st;
+    return {label:STAGE_LABEL[s],st,conn};
+  });
+}
+function rail(p,size){
+  return h('div',{class:'rail '+size,role:'img','aria-label':p.stageLabel+(p.hasStage?', stage '+(p.idx+1)+' of 6':'')},
+    railSteps(p).map((s,i)=>h('span',{class:'step'},i?h('span',{class:'conn '+s.conn}):null,h('span',{class:'node '+s.st,title:s.label}))));
+}
+function bars(counts,height,opts={}){
+  const known=counts.filter(c=>c!=null),mx=Math.max(1,...known),n=counts.length;
+  return h('div',{class:'bars',role:'img','aria-label':opts.aria,style:'height:'+height+'px'},
+    counts.map((c,i)=>{
+      if(c==null)return h('span',{class:'unknown',style:'height:2px',title:opts.titles?opts.titles[i]+': not fetched yet':null});
+      const cls=[c?'on':'',i===n-1&&c?'hot':'',opts.recentFrom!=null?(i>=opts.recentFrom?'recent':'old'):''].join(' ');
+      return h('span',{class:cls,style:'height:'+(c?Math.max(3,Math.round(c/mx*height)):2)+'px',title:opts.titles?plural(c,'commit')+', week of '+opts.titles[i]:null});
+    }));
+}
+
+// ---------------------------------------------------------------- overview
+const STRIP_FILTERS={
+  all:()=>true, focus:p=>p.focus, paused:p=>p.paused, nostage:p=>p.noStage, invalid:p=>p.bad,
+};
+const matchFilter=(p,f)=>f.startsWith('stage:')?p.stage===f.slice(6):(STRIP_FILTERS[f]||STRIP_FILTERS.all)(p);
+const catOf=p=>p.category||'Uncategorised';
+const matchCat=(p,c)=>c==='all'||catOf(p)===c;
+const lastTime=p=>p.lastCommit?+new Date(p.lastCommit.date):0;
+const SORTS={
+  stage:(a,b)=>(b.idx-a.idx)||a.name.localeCompare(b.name),
+  recent:(a,b)=>lastTime(b)-lastTime(a),
+  quiet:(a,b)=>lastTime(a)-lastTime(b),
+  name:(a,b)=>a.name.localeCompare(b.name),
+};
+// Archived repos always sort to the bottom, whatever the chosen order.
+const sorted=(list,key)=>list.sort((a,b)=>(a.archived-b.archived)||SORTS[key](a,b));
+function groupsOf(list,filter){
+  if(filter==='focus'||!list.some(p=>p.focus))return [{label:null,items:list}];
+  return [{label:'Focus',cls:'focus',items:list.filter(p=>p.focus)},{label:'Everything else',items:list.filter(p=>!p.focus)}];
+}
+
+function sourcesLine(){
+  return h('div',{class:'sources'},
+    DATA.sources.map(s=>h('span',{class:'src',title:s.error?s.error:'ok · '+plural(s.count,'repo')},h('span',{class:'dot'+(s.error?' bad':'')}),s.owner)),
+    h('span',{class:'faint'},'Refreshed '+clock(DATA.generatedAt)+' · every '+DATA.refreshMinutes+' min'));
+}
+function banner(){
+  const bad=DATA.sources.filter(s=>s.error);
+  if(!bad.length)return null;
+  return h('div',{class:'banner',role:'status'},bad.map(s=>h('div',null,
+    h('span',{class:'error'},s.owner+': '+sentence(s.error)),' ',
+    h('span',{class:'rest'},s.fetchedAt?'Showing its last good data from '+when(s.fetchedAt)+'. The page will recover on the next successful refresh.':'No data from this source yet.'))));
+}
+
+function overview(){
+  const all=projects(),{filter,cat,sort}=ui;
+  const count=key=>all.filter(p=>matchFilter(p,key)&&matchCat(p,cat)).length;
+  const cell=(key,label,cls='')=>{const n=count(key),on=filter===key;
+    return h('button',{type:'button',class:'cell '+cls+(n?'':' zero'),'aria-pressed':String(on),onclick:()=>setUi('filter',on&&key!=='all'?'all':key)},
+      h('span',{class:'n '+(n&&!on?({nostage:'nostage',invalid:'error',paused:'muted'}[key]||''):'')},n),h('span',{class:'l'},label));};
+  const sep=()=>h('span',{class:'sep','aria-hidden':'true'});
+  const strip=h('section',{class:'strip',role:'group','aria-label':'Summary and stage filter'},
+    cell('all','projects','big'),cell('focus','Focus'),sep(),
+    DATA.stages.map(s=>cell('stage:'+s,STAGE_LABEL[s])),sep(),
+    cell('paused','Paused'),cell('nostage','No stage file'),cell('invalid','Invalid stage'));
+
+  const cats=[...new Set(all.map(catOf))].sort();
+  const chip=(key,label)=>{const on=cat===key;
+    return h('button',{type:'button',class:'chip','aria-pressed':String(on),onclick:()=>setUi('cat',key)},label,h('span',null,all.filter(p=>matchFilter(p,filter)&&matchCat(p,key)).length));};
+  const sel=h('select',{class:'input',onchange:e=>setUi('sort',e.target.value)},
+    [['stage','Furthest along'],['recent','Most recent commit'],['quiet','Quietest first'],['name','Name']].map(([v,l])=>h('option',{value:v,selected:sort===v},l)));
+  const controls=h('section',{class:'controls','aria-label':'Category filter and sort'},
+    cats.length>1?h('div',{class:'chips',role:'group','aria-label':'Category'},chip('all','All categories'),sep(),cats.map(c=>chip(c,c))):null,
+    h('label',{class:'sort'},'Sort',sel));
+
+  const list=sorted(all.filter(p=>matchFilter(p,filter)&&matchCat(p,cat)),sort);
+  const main=h('main',{class:'list'});
+  for(const g of groupsOf(list,filter)){
+    if(!g.items.length)continue;
+    if(g.label)main.append(h('div',{class:'group '+(g.cls||'')},g.label));
+    main.append(...g.items.map(row));
+  }
+  if(!list.length)main.append(h('div',{class:'empty'},h('div',{class:'h'},'No projects match'),
+    h('div',{class:'muted'},'Nothing matches this filter.'),
+    h('button',{type:'button',class:'btn',onclick:()=>{ui.cat='all';setUi('filter','all');}},'Show all projects')));
+
+  return [h('header',{class:'top'},h('div',{class:'brand'},'Project yard'),sourcesLine()),banner(),strip,controls,main];
+}
+
+function row(p){
+  return h('a',{href:p.href,class:'row rule'+(p.paused||p.archived?' dim':''),'aria-label':p.name+', '+p.stageLabel+(p.flag?', '+p.flag:'')+', next: '+(p.next||'none')},
+    h('div',{class:'who'},
+      h('div',{class:'title'},p.focus?h('span',{class:'dot focusdot',title:'Focus'}):null,h('span',{class:'name'},p.name),
+        p.private?h('span',{class:'priv'},'private'):null,
+        p.archived?h('span',{class:'tag sm'},'archived'):null,
+        p.paused?h('span',{class:'tag outline sm'},'paused'):null),
+      p.summary?h('div',{class:'summary'},p.summary):null,
+      h('div',{class:'meta'},p.category?h('span',null,p.category):null,p.flag?h('span',{class:p.flagClass},p.flag):null)),
+    h('div',{class:'next'},h('div',{class:'k'},'Next'),h('div',{class:'v'+(p.next?'':' faint')},p.nextText)),
+    h('div',{class:'stage'},rail(p,'md'),h('div',{class:'lbl'},h('span',{class:p.stageClass},p.stageLabel),h('span',{class:'sub'},p.stageSub))),
+    h('div',{class:'spark'},bars(p.weekly,22,{aria:p.commits12w+' commits over the last 12 weeks'}),h('div',{class:'cap'},p.commits12w+' commits · 12w')),
+    h('div',{class:'last'},
+      h('div',{class:'kv'},h('span',null,'Last commit'),h('span',{class:p.lastClass||null,style:p.lastClass?null:'color:var(--color-neutral-300)'},p.lastCommit?ago(p.lastCommit.date):'none')),
+      h('div',{class:'ell',style:'color:var(--color-neutral-400)'},p.lastCommit?p.lastCommit.message:'No commits yet'),
+      h('div',{class:'kv'},h('span',null,'Open issues'),h('span',{style:'color:var(--color-neutral-300)'},p.openIssues))),
+    h('div',{class:'issues'},h('div',{class:'muted'},p.issues.length?'Open issues':'No open issues'),
+      p.issues.slice(0,3).map(i=>h('div',{class:'i'},h('span',{class:'ell',style:'color:var(--color-neutral-300)'},i.title),h('span',{class:'faint',style:'flex:none'},short(i.createdAt))))));
+}
+
+// ---------------------------------------------------------------- compact
+function compact(){
+  // Archived repos are hidden here: the panel popup is for what's in flight.
+  const all=projects().filter(p=>!p.archived),f=ui.cfilter;
+  const list=sorted(all.filter(p=>f!=='focus'||p.focus),'stage');
+  const bad=DATA.sources.filter(s=>s.error);
+  const main=h('main',{class:'c-list'});
+  for(const g of groupsOf(list,f)){
+    if(!g.items.length)continue;
+    if(g.label)main.append(h('div',{class:'group '+(g.cls||'')},g.label));
+    main.append(...g.items.map(p=>{
+      const flag=p.paused?'Paused':p.flag;
+      return h('a',{href:p.href,class:'c-row rule'+(p.paused?' dim':''),'aria-label':p.name+', '+p.stageLabel+(flag?', '+flag:'')+', next: '+(p.next||'none')},
+        h('div',{class:'l1'},p.focus?h('span',{class:'dot focusdot',title:'Focus'}):null,h('span',{class:'name ell'},p.name),h('span',{class:'st '+p.stageClass},p.stageLabel)),
+        rail(p,'sm'),
+        h('span',{class:'ago '+(p.lastClass||'faint')},p.lastCommit?short(p.lastCommit.date):'—'),
+        h('div',{class:'l2'},flag?h('span',{class:(p.paused?'muted':p.flagClass),style:'flex:none'},flag):null,h('span',{class:'ell'+(p.next?'':' faint')},p.nextText)));
+    }));
+  }
+  if(!list.length)main.append(h('div',{class:'empty',style:'padding:24px 6px'},h('div',{class:'muted'},f==='focus'?'No focus projects.':'No projects yet.')));
+  const seg=h('div',{class:'seg',role:'group','aria-label':'Show'},
+    [['all','All'],['focus','Focus']].map(([k,l])=>h('button',{type:'button','aria-pressed':String(f===k),onclick:()=>setUi('cfilter',k)},l)));
+  return [h('header',{class:'c-top'},h('div',{class:'brand'},'Project yard'),seg,h('span',{class:'faint',style:'font-size:11px'},clock(DATA.generatedAt))),
+    bad.length?h('div',{class:'c-err',role:'status'},bad.map(s=>s.owner+': '+s.error.replace(/\.$/,'')+(s.fetchedAt?' · data from '+when(s.fetchedAt):'')).join(' · ')):null,
+    main];
+}
+
+// ---------------------------------------------------------------- detail
+function detail(id){
+  const p=projects().find(p=>p.id.toLowerCase()===id.toLowerCase());
+  const back=h('a',{href:'#/',class:'back'},'← All projects');
+  if(!p)return [h('div',{class:'detail'},back,h('div',{class:'notfound'},h('div',{class:'h'},'No project at this address'),h('div',{class:'muted',style:'margin-top:6px'},id+" isn't in any connected source.")))];
+  document.title=p.name+' · Project yard';
+
+  const head=h('header',{class:'d-head'},
+    h('div',{class:'d-id'+(p.paused||p.archived?' dim':'')},
+      h('div',{class:'title'},p.focus?h('span',{class:'dot focusdot',title:'Focus'}):null,h('h1',null,p.name),
+        p.category?h('span',{class:'tag'},p.category):null,
+        h('span',{class:'tag outline'},p.private?'private':'public'),
+        p.archived?h('span',{class:'tag'},'archived'):null,
+        p.paused?h('span',{class:'tag outline'},'paused'):null),
+      p.summary?h('p',null,p.summary):null,
+      h('div',{class:'links'},h('a',{href:p.url,target:'_blank',rel:'noopener'},p.id+' ↗'),p.flag?h('span',{class:p.flagClass},p.flag):null)),
+    h('dl',{class:'stats'},
+      stat('Open issues',p.openIssues),stat('Commits · 12w',p.commits12w),
+      stat('Last commit',p.lastCommit?short(p.lastCommit.date):'—',p.lastClass),
+      stat('Stage changed',p.stageUpdated?short(p.stageUpdated):'—')));
+
+  const steps=railSteps(p),pct=p.hasStage?p.idx/5*100:0;
+  const stagePanel=h('section',{class:'panel stagepanel span2','aria-label':'Stage'},
+    p.hasStage?h('div',{class:'stagehead'},h('span',{class:'big'},p.stageLabel),
+        h('span',{class:'why'},'stage '+(p.idx+1)+' of 6'+(p.stageUpdated?' · changed '+ago(p.stageUpdated)+' ('+isoDate(p.stageUpdated)+')':'')))
+      :p.noStage?h('div',{class:'stagehead'},h('span',{class:'big nostage'},'No stage file'),
+        h('span',{class:'why'},"Add a .project.toml to place this repo on the pipeline."))
+      :h('div',{class:'stagehead'},h('span',{class:'big error'},'Stage file has an error'),h('span',{class:'why mono'},p.stageError)),
+    h('div',{class:'bigrail',role:'img','aria-label':p.stageLabel+(p.hasStage?', stage '+(p.idx+1)+' of 6':'')},
+      h('div',{class:'line','aria-hidden':'true',style:'background:'+(p.hasStage?'linear-gradient(to right,var(--color-neutral-500) '+pct+'%,var(--color-neutral-800) '+pct+'%)':p.bad?'var(--color-neutral-800)':'var(--color-accent-900)')}),
+      steps.map(s=>h('div',{class:'s'},h('span',{class:'node '+s.st}),h('span',{class:'lab ell '+s.st},s.label)))),
+    h('div',null,h('div',{class:'kicker'},'Next step'),h('div',{class:'nextbig'+(p.next?'':' faint')},p.nextText)));
+
+  const notes=h('section',{class:'panel','aria-label':'Notes'},h('div',{class:'ph'},h('span',{class:'t'},'Notes')),
+    p.notes?h('div',{class:'notes'},p.notes):h('div',{class:'none'},p.hasStageFile?'No notes in the stage file. Add notes = """…""" to .project.toml.':'Notes come from the stage file.'));
+
+  const commits=h('section',{class:'panel','aria-label':'Recent commits'},
+    h('div',{class:'ph'},h('span',{class:'t'},'Recent commits'),p.commits.length?h('span',{class:'c'},'last '+p.commits.length):null),
+    p.commits.length?h('ol',{class:'lines commits'},p.commits.map(c=>h('li',null,h('span',{class:'date'},isoDate(c.date)),h('a',{href:c.url,target:'_blank',rel:'noopener',class:'ell',title:c.message},c.message))))
+      :h('div',{class:'none'},'Nothing pushed yet.'));
+
+  const more=p.openIssues-p.issues.length;
+  const issues=h('section',{class:'panel','aria-label':'Open issues'},
+    h('div',{class:'ph'},h('span',{class:'t'},'Open issues'),h('span',{class:'c'},p.openIssues+' open')),
+    p.issues.length?h('ul',{class:'lines issuelist'},p.issues.map(i=>h('li',null,
+        h('a',{href:i.url,target:'_blank',rel:'noopener'},i.title),
+        i.labels.length?h('span',{class:'labels'},i.labels.map(l=>h('span',{class:'tag sm'},l))):null,
+        h('span',{class:'age'},short(i.createdAt))))):h('div',{class:'none'},'No open issues.'),
+    more>0?h('a',{class:'more',href:p.url+'/issues',target:'_blank',rel:'noopener'},plural(more,'more issue')+' on GitHub ↗'):null);
+
+  const y=p.year,start=new Date(y.start+'T00:00:00Z');
+  const titles=y.weeks.map((_,i)=>new Date(start.getTime()+i*7*DAY).toISOString().slice(0,10));
+  const total52=y.weeks.reduce((a,b)=>a+(b||0),0),missing=y.weeks.some(w=>w==null);
+  const activity=h('section',{class:'panel activity','aria-label':'Activity'},
+    h('div',{class:'ph'},h('span',{class:'t'},'Commit activity')),
+    bars(y.weeks,64,{aria:total52+' commits over 52 weeks',titles,recentFrom:y.weeks.length-12}),
+    h('div',{class:'axis'},h('span',null,y.start.slice(0,7)),h('span',{class:'mid'},total52+' commits · 52w · '+p.commits12w+' in the last 12'),h('span',null,'now')),
+    missing?h('div',{class:'none'},'Older weeks are still being fetched; they fill in on a later refresh.'):null,
+    !p.lastCommit?h('div',{class:'none'},'No commits yet.'):null);
+
+  const repo=h('section',{class:'panel repo','aria-label':'Repository'},h('div',{class:'ph'},h('span',{class:'t'},'Repository')),
+    h('dl',null,
+      h('dt',null,'Repo'),h('dd',null,h('a',{href:p.url,target:'_blank',rel:'noopener'},p.id+' ↗')),
+      h('dt',null,'Visibility'),h('dd',null,(p.private?'Private':'Public')+(p.archived?' · archived':'')),
+      h('dt',null,'Category'),h('dd',null,p.category||'—'),
+      h('dt',null,'Last commit'),h('dd',null,p.lastCommit?[h('a',{href:p.lastCommit.url,target:'_blank',rel:'noopener',class:'plain'},p.lastCommit.message),
+        h('div',{class:'sub'},isoDate(p.lastCommit.date)+' · '+ago(p.lastCommit.date))]:'—'),
+      h('dt',null,'Stage set'),h('dd',null,isoDate(p.stageUpdated))));
+
+  return [h('div',{class:'detail'},back,head,h('div',{class:'dgrid'},stagePanel,notes,commits,issues,h('div',{class:'side'},activity,repo)))];
+}
+function stat(label,value,cls){return h('div',null,h('dt',null,label),h('dd',{class:cls||null},value));}
+
+// ---------------------------------------------------------------- routing + refresh
+function render(){
+  const m=/^#\/(.+\/.+)$/.exec(decodeURIComponent(location.hash));
+  document.title='Project yard';
+  const app=document.getElementById('app');
+  app.replaceChildren(...(m?detail(m[1]):COMPACT.matches?compact():overview()).filter(Boolean));
+}
+let lastRoute=location.hash;
+addEventListener('hashchange',()=>{render();if(location.hash!==lastRoute)scrollTo(0,0);lastRoute=location.hash;});
+COMPACT.addEventListener('change',render);
+render();
+
+// The server rewrites data.json every refresh; pick it up without reloading the page.
+setInterval(async()=>{
+  if(document.visibilityState!=='visible')return;
+  try{const r=await fetch('data.json',{cache:'no-store'});if(r.ok){DATA=await r.json();render();}}catch{}
+},5*60*1000);
+</script>
+</body>
+</html>
