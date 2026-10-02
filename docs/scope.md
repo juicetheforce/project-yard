@@ -41,7 +41,8 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
     (private included), stage files, commits, issues and 52-week counts as the classic token, no GraphQL errors.
     M1 done.
 - M1.5 UI v2 + collector: notes, last 15 commits, open issues (title, labels, age), 52-week activity. Done 2026-09-29.
-- M2 Deploy on the Docker host (README → Deploy) behind the reverse proxy. The global block is installed in
+- M2 [confirmed] Deploy on the Docker host (README → Deploy) behind the reverse proxy. v0.2 runs from the
+  published image and is in daily use with no issues reported (confirmed 2026-10-02). The global block is installed in
   `~/.claude/CLAUDE.md` [confirmed 2026-09-29].
   [decided] 2026-09-29: releases are annotated tags, never moved. The repo is published fresh as a public repo
   (MIT) with one clean first commit; the earlier private history stays in a separate private repo. Tag
@@ -49,8 +50,11 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   `config.toml` and `.env`, and update by bumping the pinned version and pulling. First public release: v0.2.
   [decided] 2026-09-29: stage files are created by Claude Code per repo via the global block, proposed
   from the repo itself on its first session. No seed files.
-- M3 Watch a week of real updates as repos pick up their stage files; fix what the board shows is missing.
-- M4+ Re-evaluate: filters, second source (an org), anything the live board shows is missing.
+- M3 Watch real updates as repos pick up their stage files; fix what the board shows is missing. Running
+  alongside M4.
+- M4 Feature requests for the next release. Record each under Open (or Decisions once agreed) before
+  building it; ship as v0.3 per README → Releasing.
+- M5+ Re-evaluate: filters, second source (an org), anything the live board shows is missing.
 
 ## Testing
 Monkeypatch `app.graphql` to return a fixture shaped like the GraphQL response

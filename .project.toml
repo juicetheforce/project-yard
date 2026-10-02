@@ -1,7 +1,7 @@
 name = "Project yard"
 summary = "Self-hosted dashboard of every project's stage and commit activity across GitHub."
-stage = "testing"
-next = "M2: deploy v0.2 on the Docker host from the published image (README → Deploy), add the reverse-proxy block"
+stage = "live"
+next = "M4: collect and scope feature requests for v0.3 (record in docs/scope.md first)"
 category = "Homelab"
 paused = false
 focus = true
