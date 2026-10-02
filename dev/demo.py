@@ -6,7 +6,11 @@
 Feeds fixture data through the real collector by replacing app.graphql, the same way
 docs/scope.md → Testing describes, so the page shows every state: focus, paused,
 archived, quiet, no stage file, an invalid stage file, and an empty repo.
+Traffic comes from a fake app.rest: a month of older history is seeded in
+traffic.json first, so the charts show history merged past GitHub's 14 days.
+One repo answers 403 (traffic unavailable) and one is hidden in settings.json.
 """
+import json
 import os
 import sys
 import tempfile
@@ -80,6 +84,11 @@ def fake_repo(name, stage_text, last_days, weekly, messages, issues, archived):
     return {
         "name": name, "nameWithOwner": f"example-user/{name}", "url": "#", "description": None,
         "isPrivate": name != "weather-station", "isArchived": archived, "isFork": False,
+        "stargazerCount": len(name) * 3, "forkCount": len(name) // 3, "watchers": {"totalCount": len(name) // 2},
+        "releases": {"totalCount": 12 if name == "harbor" else 0, "nodes": [
+            {"name": f"v0.{n}", "tagName": f"v0.{n}", "url": "#", "publishedAt": ts(n * 9), "isDraft": False,
+             "releaseAssets": {"nodes": [{"downloadCount": 40 - n * 3}, {"downloadCount": 12 - n}]}}
+            for n in range(10)] if name == "harbor" else []},
         "pushedAt": ts(last_days) if last_days is not None else None,
         "stageFile": {"text": stage_text} if stage_text else None,
         "issues": {"totalCount": len(issues), "nodes": [
@@ -100,8 +109,39 @@ def fake_graphql(api_url, token, query, variables, key):
     return {"repository": {"defaultBranchRef": {"target": {f"w{i}": {"totalCount": n} for i, n in enumerate(repo["_weekly"])}}}}
 
 
+def daily(days_ago, name):
+    n = (len(name) * 7 + days_ago * 5) % 23
+    return {"timestamp": (NOW - timedelta(days=days_ago)).strftime("%Y-%m-%dT00:00:00Z"), "count": n, "uniques": n // 3}
+
+
+def fake_rest(url, token):
+    rid = url.split("/repos/")[1].split("/traffic")[0]
+    name = rid.split("/")[1]
+    if name == "recipe-box":
+        raise app.TrafficUnavailable("HTTP 403")
+    if url.endswith("/views?per=day") or url.endswith("/clones?per=day"):
+        kind = "views" if "/views" in url else "clones"
+        days = [daily(d, name + kind) for d in range(14) if d % 4]  # some days missing, as GitHub omits zeros
+        return {"count": sum(d["count"] for d in days), "uniques": max(d["uniques"] for d in days) + 3, kind: days}
+    if url.endswith("/referrers"):
+        return [{"referrer": r, "count": c, "uniques": c // 2} for r, c in [("github.com", 41), ("news.ycombinator.com", 17), ("google.com", 6)]]
+    return [{"path": f"/{rid}{p}", "title": t, "count": c, "uniques": c // 2}
+            for p, t, c in [("", name, 52), ("/blob/main/README.md", "README", 14), ("/releases", "Releases", 5)]]
+
+
+# Start clean, then seed 30 older days for two repos so merging past 14 days is visible.
+for f in ("traffic.json", "settings.json", "last-good.json"):
+    (OUT / f).unlink(missing_ok=True)
+app.TRAFFIC_FILE.write_text(json.dumps({
+    f"example-user/{n}": {k: {(NOW - timedelta(days=d)).date().isoformat(): {"count": d % 9, "uniques": d % 4} for d in range(14, 44)}
+                          for k in ("views", "clones")}
+    for n in ("harbor", "weather-station")}))
+app.SETTINGS_FILE.write_text(json.dumps({"hidden": ["example-user/scratchpad"]}))
+
 app.graphql = fake_graphql
+app.rest = fake_rest
 cfg = app.load_config()
 cfg["filters"]["include_archived"] = True
-app.refresh(cfg, {})
+cfg["traffic"]["include_private"] = True
+app.refresh(app.Board(cfg))
 print(f"Wrote {OUT / 'index.html'}")

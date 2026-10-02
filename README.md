@@ -16,6 +16,11 @@ static page. Standard-library Python, no dependencies, one container.
   issues come straight from GitHub.
 - If the stage file hasn't changed in `stale_days` but commits have landed since, the dashboard
   flags the stage as possibly out of date.
+- Stars, forks, watchers and release download counts come with every refresh. Container image
+  pulls from GHCR aren't shown: GitHub's API doesn't expose package download counts.
+- Traffic (views, clones, top referrers, popular pages) is read once a day per public repo.
+  GitHub keeps only 14 days of it, so the dashboard stores each day and builds up its own history.
+- A gear icon on the board opens the settings screen, where any repo can be hidden or shown again.
 - If a token fails, a banner says so and the board keeps showing the last good data for that source.
 - Narrow windows (560px or less, e.g. a desktop panel popup) get a compact layout.
 
@@ -25,11 +30,18 @@ GitHub → Settings → Developer settings → Fine-grained tokens → Generate 
 
 - **Resource owner:** the account or org this token is for.
 - **Repository access:** All repositories (so new repos appear automatically).
-- **Permissions → Repository:** Contents: Read-only, Issues: Read-only. Metadata: Read-only is added automatically.
+- **Permissions → Repository:** Contents: Read-only, Issues: Read-only, Administration: Read-only.
+  Metadata: Read-only is added automatically.
 - **Expiration:** your call. When it lapses, the dashboard shows a banner for that source.
 
 Organizations may need to allow fine-grained tokens, and may require approval, under
 the org's Settings → Personal access tokens.
+
+**Administration: Read-only** is only for traffic (views and clones). GitHub puts its traffic
+endpoints under that permission; read-only access can't change any settings. Without it, everything
+else works and each repo's page shows "Traffic unavailable". To add it to an existing token, edit
+the token on GitHub; no change on the host is needed, and traffic appears within a day.
+A classic token needs push access to the repo for traffic.
 
 ## 2. Deploy
 
@@ -68,7 +80,8 @@ Within about 30 seconds you should see:
     INFO serving on :8087
     INFO your-github-user: 12 repos, 52-week activity updated for 12; 19 rate-limit points
 
-The first refresh fetches a year of activity for every repo, so it takes the longest.
+The first refresh fetches a year of activity and, for public repos, 14 days of traffic, so it
+takes the longest. A log line `traffic unavailable` means the token lacks Administration: Read.
 Later refreshes print `updated for 0` and a handful of rate-limit points. Press Ctrl+C to stop
 following the log; the container keeps running. Then:
 
@@ -105,8 +118,37 @@ bumping, look at what changed (https://github.com/juicetheforce/project-yard/com
 if `config.example.toml` or `.env.example` gained settings, copy them into your own files; if
 `compose.yaml` changed beyond the version, download it again as in step 2.
 
-The last good data and the cached year of activity live in the `dashboard-data` volume, so they
-survive updates. **To roll back,** set the older version and run the same `pull` and `up -d`.
+The last good data, the cached year of activity, traffic history and settings live in the
+`dashboard-data` volume, so they survive updates. **To roll back,** set the older version and run
+the same `pull` and `up -d`.
+
+## Backing up the data volume
+
+`traffic.json` in the volume holds every day of traffic collected so far. GitHub only keeps the
+last 14 days, so this history can't be fetched again if it's lost. `settings.json` holds which repos are
+hidden. Everything else in the volume rebuilds itself on the next refresh. To copy both files out:
+
+    cd ~/project-yard
+    docker compose cp project-dashboard:/data/traffic.json  ./backup-traffic.json
+    docker compose cp project-dashboard:/data/settings.json ./backup-settings.json
+
+To restore, copy them back the same way (swap the arguments) and run `docker compose restart`.
+`docker compose down -v` deletes the volume and the history with it.
+
+## Showing and hiding repos
+
+The gear icon at the top right of the board opens the settings screen. It lists every repo the
+collector finds, with a Shown/Hidden switch each. A hidden repo leaves the board right away and stays in
+the list so it can be shown again. New repos are shown. The choices are saved to `settings.json` in the
+data volume, not `config.toml`, so the container doesn't need a restart.
+
+`config.toml`'s `exclude` list still works and comes first: excluded repos don't appear anywhere,
+including the settings screen.
+
+The settings screen has no login, like the rest of the page. The save endpoint only accepts
+JSON from the dashboard's own page (same origin) and only names of repos it already knows. If a save
+fails with "Cross-origin request refused" behind a reverse proxy, make the proxy pass the original
+`Host` header (Caddy does this by default).
 
 After editing `config.toml` or `.env` (the container reads them only at start):
 

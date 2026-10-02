@@ -3,10 +3,14 @@
 
 Every few minutes: read each configured GitHub account/org, pull repos,
 their .project.toml stage file and recent commit activity, and render a
-static dashboard page. Serves that page on PORT.
+static dashboard page. Once a day per repo, also read its traffic (views,
+clones, referrers, paths) and keep the daily counts in traffic.json, since
+GitHub only keeps 14 days. Serves the page on PORT, plus one endpoint that
+saves which repos are hidden.
 
 Standard library only (Python 3.11+ for tomllib).
 """
+import copy
 import json
 import logging
 import os
@@ -21,11 +25,14 @@ from datetime import datetime, timedelta, timezone
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 CONFIG_PATH = Path(os.environ.get("CONFIG", "/config/config.toml"))
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 SITE_DIR = DATA_DIR / "site"
 STATE_FILE = DATA_DIR / "last-good.json"
+TRAFFIC_FILE = DATA_DIR / "traffic.json"    # history beyond GitHub's 14 days: worth backing up
+SETTINGS_FILE = DATA_DIR / "settings.json"  # choices made on the settings screen
 TEMPLATE = Path(__file__).with_name("template.html")
 PORT = int(os.environ.get("PORT", "8087"))
 
@@ -37,7 +44,12 @@ YEAR_REFRESH = timedelta(hours=24)
 COMMITS = 15        # recent commits listed on the detail page
 ISSUES = 20         # open issues listed on the detail page (the count is always exact)
 PAGE_SIZE = 20      # repos per request; bigger pages risk GitHub's request timeout
+RELEASES = 10       # newest releases whose asset downloads are counted
+ASSETS = 20         # assets read per release
 DEFAULT_API = "https://api.github.com/graphql"
+TRAFFIC_REFRESH = timedelta(hours=24)  # traffic is daily data; read it once a day per repo
+TRAFFIC_RETRY = timedelta(hours=1)     # after a network error or GitHub hiccup
+TRAFFIC_DAYS = 14                      # how far back GitHub's traffic endpoints go
 
 log = logging.getLogger("dashboard")
 
@@ -66,6 +78,11 @@ query($owner: String!, $cursor: String, %s) {
       pageInfo { hasNextPage endCursor }
       nodes {
         name nameWithOwner url description isPrivate isArchived isFork pushedAt
+        stargazerCount forkCount watchers { totalCount }
+        releases(first: %d, orderBy: {field: CREATED_AT, direction: DESC}) {
+          totalCount
+          nodes { name tagName url publishedAt isDraft releaseAssets(first: %d) { nodes { downloadCount } } }
+        }
         stageFile: object(expression: "HEAD:.project.toml") { ... on Blob { text } }
         issues(states: OPEN, first: %d, orderBy: {field: CREATED_AT, direction: DESC}) {
           totalCount
@@ -84,7 +101,7 @@ query($owner: String!, $cursor: String, %s) {
     }
   }
 }
-""" % (week_var_decls(RECENT_WEEKS), PAGE_SIZE, ISSUES, COMMITS, week_fields(RECENT_WEEKS))
+""" % (week_var_decls(RECENT_WEEKS), PAGE_SIZE, RELEASES, ASSETS, ISSUES, COMMITS, week_fields(RECENT_WEEKS))
 
 # One repo at a time: 52 counts for a whole page of repos in one request made
 # GitHub time out (HTTP 502) during testing, while one repo takes about a second.
@@ -108,6 +125,10 @@ class SourceError(Exception):
     """A problem reading one account/org, phrased for the dashboard banner."""
 
 
+class TrafficUnavailable(Exception):
+    """The token may not read this repo's traffic (needs Administration: Read)."""
+
+
 # ---------------------------------------------------------------- config
 
 def load_config():
@@ -121,6 +142,7 @@ def load_config():
     flt.setdefault("include_archived", False)
     flt.setdefault("include_forks", False)
     flt["exclude"] = {s.lower() for s in flt.get("exclude", [])}
+    cfg.setdefault("traffic", {}).setdefault("include_private", False)
     return cfg
 
 
@@ -162,6 +184,97 @@ def source_auth(src):
     if not token:
         raise SourceError(f"No token set. Put it in the {src.get('token_env')} environment variable.")
     return src.get("api_url", DEFAULT_API), token
+
+
+def rest_base(src):
+    """REST API root for a source: api.github.com, or GHES's /api/v3 next to its /api/graphql."""
+    if src.get("rest_url"):
+        return src["rest_url"].rstrip("/")
+    api = src.get("api_url", DEFAULT_API)
+    if api == DEFAULT_API:
+        return "https://api.github.com"
+    return api.removesuffix("/graphql").removesuffix("/api") + "/api/v3"
+
+
+def rest(url, token):
+    """GET one REST endpoint. Raises TrafficUnavailable for 403/404, SourceError otherwise."""
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "project-dashboard",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        rate_limited = e.headers.get("x-ratelimit-remaining") == "0" or e.headers.get("retry-after")
+        if e.code in (403, 404) and not rate_limited:
+            raise TrafficUnavailable(f"HTTP {e.code}")
+        raise SourceError(f"GitHub returned HTTP {e.code}.")
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise SourceError(f"Couldn't reach GitHub ({e}).")
+
+
+def fetch_traffic(src, repos, traffic, include_private, now):
+    """Read traffic for repos that are due (once a day each) and merge it into `traffic`.
+
+    Daily counts are merged by date, so history keeps growing past GitHub's 14 days.
+    A failed read changes nothing that was stored before; it only sets when to retry.
+    """
+    api, token = source_auth(src)
+    base = rest_base(src)
+    done, unavailable = 0, 0
+    for repo in repos:
+        if repo["isPrivate"] and not include_private:
+            continue
+        rid = repo["nameWithOwner"]
+        t = traffic.setdefault(rid, {"views": {}, "clones": {}})
+        if t.get("nextFetch") and now < parse_ts(t["nextFetch"]):
+            continue
+        try:
+            views = rest(f"{base}/repos/{rid}/traffic/views?per=day", token)
+            clones = rest(f"{base}/repos/{rid}/traffic/clones?per=day", token)
+            referrers = rest(f"{base}/repos/{rid}/traffic/popular/referrers", token)
+            paths = rest(f"{base}/repos/{rid}/traffic/popular/paths", token)
+        except TrafficUnavailable as e:
+            log.info("%s: traffic unavailable (%s); the token needs Administration: Read", rid, e)
+            t["status"] = "unavailable"
+            t["nextFetch"] = (now + TRAFFIC_REFRESH).isoformat()
+            unavailable += 1
+            continue
+        except SourceError as e:
+            log.warning("%s: traffic not updated: %s", rid, e)
+            t["nextFetch"] = (now + TRAFFIC_RETRY).isoformat()
+            continue
+        merge_days(t["views"], views.get("views") or [], now)
+        merge_days(t["clones"], clones.get("clones") or [], now)
+        t["last14"] = {
+            "views": {"count": views.get("count", 0), "uniques": views.get("uniques", 0)},
+            "clones": {"count": clones.get("count", 0), "uniques": clones.get("uniques", 0)},
+        }
+        t["referrers"] = [{"referrer": r["referrer"], "count": r["count"], "uniques": r["uniques"]}
+                          for r in referrers or []]
+        t["paths"] = [{"path": p["path"], "title": p.get("title") or "", "count": p["count"], "uniques": p["uniques"]}
+                      for p in paths or []]
+        t["status"] = "ok"
+        t["fetchedAt"] = now.isoformat()
+        t["nextFetch"] = (now + TRAFFIC_REFRESH).isoformat()
+        done += 1
+    return done, unavailable
+
+
+def merge_days(stored, days, now):
+    """Fold one response's daily counts into `stored` ({"YYYY-MM-DD": {count, uniques}}).
+
+    GitHub leaves out days with no traffic, so every day in the 14-day window that's
+    missing from the response is stored as 0. Days outside the window are never touched.
+    """
+    today = now.date()
+    for i in range(TRAFFIC_DAYS):
+        stored[(today - timedelta(days=i)).isoformat()] = {"count": 0, "uniques": 0}
+    for d in days:
+        stored[d["timestamp"][:10]] = {"count": d["count"], "uniques": d["uniques"]}
 
 
 def cost(data):
@@ -272,6 +385,16 @@ def shape(repo, owner, year, now):
         for c in (target.get("commits") or {}).get("nodes") or []
     ]
     issues = repo.get("issues") or {}
+    releases = [
+        {
+            "name": r.get("name") or r["tagName"],
+            "tag": r["tagName"],
+            "url": r["url"],
+            "publishedAt": r.get("publishedAt"),
+            "downloads": sum(a["downloadCount"] for a in (r.get("releaseAssets") or {}).get("nodes") or []),
+        }
+        for r in (repo.get("releases") or {}).get("nodes") or [] if r and not r.get("isDraft")
+    ]
     stage_hist = ((target.get("stageHistory") or {}).get("nodes") or [None])[0]
 
     # 52 weeks: this refresh's counts where we have them, the cached year for older
@@ -298,6 +421,12 @@ def shape(repo, owner, year, now):
         "category": str(meta.get("category") or ""),
         "paused": bool(meta.get("paused", False)),
         "focus": bool(meta.get("focus", False)),
+        "stars": repo.get("stargazerCount", 0),
+        "forks": repo.get("forkCount", 0),
+        "watchers": (repo.get("watchers") or {}).get("totalCount", 0),
+        "releaseCount": (repo.get("releases") or {}).get("totalCount", 0),
+        "releases": releases,
+        "downloads": sum(r["downloads"] for r in releases),
         "openIssues": issues.get("totalCount", 0),
         "issues": [
             {
@@ -335,11 +464,18 @@ def keep(repo, flt):
 
 # ---------------------------------------------------------------- state + render
 
-def load_state():
+def load_json(path, default):
+    """Read a JSON file from /data. A missing file gives `default`; a corrupt one is
+    moved aside (never overwritten) so whatever it held can still be recovered."""
     try:
-        return json.loads(STATE_FILE.read_text())
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return default
+    except json.JSONDecodeError:
+        aside = path.with_name(f"{path.name}.corrupt-{int(time.time())}")
+        path.replace(aside)
+        log.error("%s was unreadable; moved it to %s and started fresh", path, aside.name)
+        return default
 
 
 def atomic_write(path, text):
@@ -348,8 +484,32 @@ def atomic_write(path, text):
     tmp.replace(path)
 
 
-def refresh(cfg, state):
+class Board:
+    """Everything the page is rendered from.
+
+    The refresh thread and the settings endpoint both change it, so each holds
+    `lock` while it does. Fetching from GitHub happens on copies, outside the lock.
+    """
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.lock = threading.Lock()
+        self.state = load_json(STATE_FILE, {})
+        self.traffic = load_json(TRAFFIC_FILE, {})
+        self.settings = load_json(SETTINGS_FILE, {})
+        self.settings.setdefault("hidden", [])
+
+    def known_repos(self):
+        """Every repo the collector found (after config.toml's filters), by lowercase id."""
+        return {p["id"].lower(): p["id"] for e in self.state.values() for p in e["projects"]}
+
+
+def refresh(board):
     now = datetime.now(timezone.utc)
+    cfg = board.cfg
+    with board.lock:
+        state = copy.deepcopy(board.state)
+        traffic = copy.deepcopy(board.traffic)
 
     for src in cfg["sources"]:
         owner = src["owner"]
@@ -366,21 +526,37 @@ def refresh(cfg, state):
             entry["error"] = None
             log.info("%s: %d repos, 52-week activity updated for %d; %d rate-limit points",
                      owner, len(repos), fetched, points + year_points)
+            done, unavailable = fetch_traffic(src, repos, traffic, cfg["traffic"]["include_private"], now)
+            if done or unavailable:
+                log.info("%s: traffic read for %d repos, unavailable for %d", owner, done, unavailable)
         except SourceError as e:
             # Keep the last good data so one bad token doesn't blank the board.
             entry["error"] = str(e)
             log.error("%s: %s", owner, e)
 
-    # Drop sources that were removed from the config.
+    # Drop sources that were removed from the config. Traffic history is kept regardless.
     configured = {s["owner"] for s in cfg["sources"]}
     for gone in set(state) - configured:
         del state[gone]
 
-    atomic_write(STATE_FILE, json.dumps(state))
-    render(cfg, state, now)
+    with board.lock:
+        board.state, board.traffic = state, traffic
+        atomic_write(STATE_FILE, json.dumps(state))
+        atomic_write(TRAFFIC_FILE, json.dumps(traffic))
+        render(board, now)
 
 
-def render(cfg, state, now):
+def render(board, now):
+    """Write index.html and data.json. Call with board.lock held."""
+    cfg, state = board.cfg, board.state
+    hidden = {h.lower() for h in board.settings["hidden"]}
+    projects = []
+    for e in state.values():
+        for p in e["projects"]:
+            collected = not p["private"] or cfg["traffic"]["include_private"]
+            projects.append({**p, "hidden": p["id"].lower() in hidden,
+                             "traffic": board.traffic.get(p["id"]) if collected else None,
+                             "trafficCollected": collected})
     data = {
         "generatedAt": now.isoformat(),
         "staleDays": cfg["stale_days"],
@@ -390,7 +566,7 @@ def render(cfg, state, now):
             {"owner": o, "error": e.get("error"), "fetchedAt": e.get("fetchedAt"), "count": len(e["projects"])}
             for o, e in state.items()
         ],
-        "projects": [p for e in state.values() for p in e["projects"]],
+        "projects": projects,
     }
     blob = json.dumps(data).replace("</", "<\\/")
     page = TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/null", blob)
@@ -398,21 +574,44 @@ def render(cfg, state, now):
     atomic_write(SITE_DIR / "data.json", json.dumps(data, indent=2))
 
 
-def refresh_loop(cfg):
-    state = load_state()
-    if state:
-        render(cfg, state, datetime.now(timezone.utc))
+def save_hidden(board, ids):
+    """Store the hidden list from the settings screen and re-render at once.
+
+    Returns an error message, or None. Only repos the collector knows are accepted.
+    """
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+        return "hidden must be a list of owner/name strings"
+    with board.lock:
+        known = board.known_repos()
+        unknown = [i for i in ids if i.lower() not in known]
+        if unknown:
+            return "Unknown repo: " + ", ".join(unknown[:5])
+        board.settings["hidden"] = sorted({known[i.lower()] for i in ids})
+        atomic_write(SETTINGS_FILE, json.dumps(board.settings, indent=2))
+        render(board, datetime.now(timezone.utc))
+    return None
+
+
+def refresh_loop(board):
+    if board.state:
+        with board.lock:
+            render(board, datetime.now(timezone.utc))
     while True:
         try:
-            refresh(cfg, state)
+            refresh(board)
         except Exception:  # never let the loop die
             log.exception("refresh failed")
-        time.sleep(cfg["refresh_minutes"] * 60)
+        time.sleep(board.cfg["refresh_minutes"] * 60)
 
 
 # ---------------------------------------------------------------- web
 
+MAX_BODY = 64 * 1024
+
+
 class Handler(SimpleHTTPRequestHandler):
+    board = None  # set in main()
+
     def do_GET(self):
         if self.path == "/healthz":
             self.send_response(200)
@@ -421,6 +620,50 @@ class Handler(SimpleHTTPRequestHandler):
             self.wfile.write(b"ok")
             return
         super().do_GET()
+
+    def do_POST(self):
+        if self.path != "/api/settings":
+            return self.reply(404, {"error": "Not found"})
+        problem = self.cross_origin_problem()
+        if problem:
+            return self.reply(403, {"error": problem})
+        if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
+            return self.reply(415, {"error": "Send application/json"})
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = -1
+        if not 0 < length <= MAX_BODY:
+            return self.reply(413, {"error": "Body missing or too large"})
+        try:
+            body = json.loads(self.rfile.read(length))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return self.reply(400, {"error": "Body isn't valid JSON"})
+        if not isinstance(body, dict):
+            return self.reply(400, {"error": 'Expected {"hidden": [...]}'})
+        error = save_hidden(self.board, body.get("hidden"))
+        if error:
+            return self.reply(400, {"error": error})
+        self.reply(200, {"hidden": self.board.settings["hidden"]})
+
+    def cross_origin_problem(self):
+        """Only the dashboard's own page may save. Browsers send Origin on every POST;
+        it must name this host (as the client sees it, also via X-Forwarded-Host)."""
+        origin = self.headers.get("Origin")
+        hosts = {h for h in (self.headers.get("Host"), self.headers.get("X-Forwarded-Host")) if h}
+        if not origin or urlsplit(origin).netloc not in hosts:
+            return "Cross-origin request refused"
+        if self.headers.get("Sec-Fetch-Site", "same-origin") != "same-origin":
+            return "Cross-site request refused"
+        return None
+
+    def reply(self, code, payload):
+        body = json.dumps(payload).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
@@ -442,7 +685,9 @@ def main():
                      "<!doctype html><meta http-equiv=refresh content=10>"
                      "<body style='background:#16191e;color:#e7e9ed;font-family:sans-serif;padding:2em'>"
                      "First refresh in progress. This page reloads itself.")
-    threading.Thread(target=refresh_loop, args=(cfg,), daemon=True).start()
+    board = Board(cfg)
+    Handler.board = board
+    threading.Thread(target=refresh_loop, args=(board,), daemon=True).start()
     server = ThreadingHTTPServer(("0.0.0.0", PORT), partial(Handler, directory=str(SITE_DIR)))
     log.info("serving on :%d", PORT)
     server.serve_forever()

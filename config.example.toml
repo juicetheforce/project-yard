@@ -15,6 +15,7 @@ token_env = "GH_TOKEN_PERSONAL"   # name of the variable in .env holding the tok
 # token_env = "GH_TOKEN_ORG"
 
 # GitHub Enterprise Server: add api_url = "https://github.example.com/api/graphql" to that source.
+# Traffic uses the REST API, assumed at .../api/v3 next to it; set rest_url on the source if yours differs.
 
 [filters]
 include_archived = false
@@ -23,3 +24,9 @@ include_forks = false
 exclude = [
   "your-github-user/your-github-user",   # profile README repo, if you have one
 ]
+# To hide a repo without editing this file, use the settings screen (gear icon on the board).
+
+[traffic]
+# Views, clones, referrers and popular pages, read once a day per repo. Needs the token's
+# Administration: Read permission (README, step 1). Public repos only unless this is true.
+include_private = false

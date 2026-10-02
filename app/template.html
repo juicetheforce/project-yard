@@ -219,6 +219,46 @@ select.input option{background:var(--color-surface)}
 .repo dd{margin:0;min-width:0}
 .repo dd a.plain{color:var(--color-text);text-decoration:none}
 .repo .sub{color:var(--color-neutral-500);font-size:12px}
+/* traffic: total and unique overlaid on one axis (unique ≤ total) */
+.tchart{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tchart .hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:13px}
+.tchart .hd .k{font-weight:500}
+.legend{display:inline-flex;gap:12px;font-size:11px;color:var(--color-neutral-500)}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tbars{display:flex;align-items:stretch;gap:1px;height:72px}
+.tbars .d{flex:1;position:relative;min-width:0;border-radius:2px}
+.tbars .d:hover{background:color-mix(in srgb,var(--color-text) 6%,transparent)}
+.tbars .d i{position:absolute;left:0;right:0;bottom:0;border-radius:2px 2px 0 0}
+.tbars .d.unknown i{background:repeating-linear-gradient(to right,var(--color-neutral-800) 0 2px,transparent 2px 4px)}
+.c-total{background:var(--color-neutral-600)}
+.c-unique{background:var(--color-accent-400)}
+.tcharts{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media (min-width:1000px){.tcharts{grid-template-columns:1fr 1fr}}
+.axis{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--color-neutral-600);flex-wrap:wrap}
+.totals{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:12.5px;color:var(--color-neutral-400)}
+.totals b{font-weight:500;color:var(--color-text)}
+.lines .n{flex:none;margin-left:auto;color:var(--color-neutral-400);font-size:12px;white-space:nowrap}
+.lines .n .faint{margin-left:6px}
+.quiet{font-size:12px;color:var(--color-neutral-600)}
+
+/* settings */
+.gear{display:inline-flex;align-items:center;gap:6px;color:var(--color-neutral-400);text-decoration:none;font-size:12px;padding:4px 6px;border-radius:var(--radius-md)}
+.gear:hover{color:var(--color-text);background:var(--color-surface)}
+.gear svg{width:16px;height:16px}
+.settings{max-width:820px;padding:14px 24px 56px}
+.settings h1{font-size:24px;margin:20px 0 6px}
+.settings .intro{color:var(--color-neutral-400);font-size:13.5px;margin:0 0 18px;max-width:64ch}
+.settings .status{min-height:20px;font-size:12.5px;margin-bottom:6px}
+.srow{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:var(--radius-md)}
+.srow .nm{flex:1;min-width:0;display:flex;flex-direction:column}
+.srow .nm .id{font-size:12px;color:var(--color-neutral-500)}
+.srow.off .nm{opacity:.55}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--color-neutral-400);min-width:92px;justify-content:flex-end}
+.switch input{appearance:none;margin:0;width:34px;height:20px;border-radius:10px;background:var(--color-neutral-800);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--color-neutral-400);transition:transform .15s}
+.switch input:checked{background:var(--color-accent-700)}
+.switch input:checked::after{transform:translateX(14px);background:var(--color-accent-200)}
+.switch input:disabled{opacity:.5;cursor:wait}
 .notfound{padding:48px 0}
 .notfound .h{font-weight:500;font-size:20px}
 
@@ -287,14 +327,16 @@ function enrich(p){
   else if(quiet)flag='Quiet · '+lastDays+'d';
   else if(stale)flag='Stage may be out of date';
   const stageLabel=hasStage?STAGE_LABEL[p.stage]:noStage?'No stage file':'Invalid stage';
-  return {...p,idx,hasStage,bad,noStage,lastDays,quiet,stale,flag,flagClass,stageLabel,
+  // Defaults cover data saved by an older version, rendered before the first refresh.
+  return {stars:0,forks:0,watchers:0,releases:[],releaseCount:0,downloads:0,traffic:null,trafficCollected:false,...p,idx,hasStage,bad,noStage,lastDays,quiet,stale,flag,flagClass,stageLabel,
     stageClass:hasStage?'':noStage?'nostage':'error',
     stageSub:hasStage?(p.stageUpdated?'changed '+ago(p.stageUpdated):''):noStage?'to do':'see file',
     nextText:p.next||(noStage?'Set in the stage file':'No next step'),
     lastClass:quiet||!last?'warn':'',
     href:'#/'+p.id};
 }
-const projects=()=>DATA.projects.map(enrich);
+// Hidden repos (settings screen) stay off the board; their detail pages still work.
+const projects=(withHidden=false)=>DATA.projects.filter(p=>withHidden||!p.hidden).map(enrich);
 
 function railSteps(p){
   return DATA.stages.map((s,i)=>{
@@ -343,6 +385,13 @@ function sourcesLine(){
     DATA.sources.map(s=>h('span',{class:'src',title:s.error?s.error:'ok · '+plural(s.count,'repo')},h('span',{class:'dot'+(s.error?' bad':'')}),s.owner)),
     h('span',{class:'faint'},'Refreshed '+clock(DATA.generatedAt)+' · every '+DATA.refreshMinutes+' min'));
 }
+const GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+function gear(){
+  const n=DATA.projects.filter(p=>p.hidden).length;
+  const a=h('a',{href:'#/settings',class:'gear',title:'Settings: show or hide repos','aria-label':'Settings'+(n?', '+n+' hidden':'')},n?plural(n,'hidden repo'):null);
+  a.insertAdjacentHTML('afterbegin',GEAR);  // constant markup, no data in it
+  return a;
+}
 function banner(){
   const bad=DATA.sources.filter(s=>s.error);
   if(!bad.length)return null;
@@ -383,7 +432,7 @@ function overview(){
     h('div',{class:'muted'},'Nothing matches this filter.'),
     h('button',{type:'button',class:'btn',onclick:()=>{ui.cat='all';setUi('filter','all');}},'Show all projects')));
 
-  return [h('header',{class:'top'},h('div',{class:'brand'},'Project yard'),sourcesLine()),banner(),strip,controls,main];
+  return [h('header',{class:'top'},h('div',{class:'brand'},'Project yard'),sourcesLine(),gear()),banner(),strip,controls,main];
 }
 
 function row(p){
@@ -401,9 +450,19 @@ function row(p){
     h('div',{class:'last'},
       h('div',{class:'kv'},h('span',null,'Last commit'),h('span',{class:p.lastClass||null,style:p.lastClass?null:'color:var(--color-neutral-300)'},p.lastCommit?ago(p.lastCommit.date):'none')),
       h('div',{class:'ell',style:'color:var(--color-neutral-400)'},p.lastCommit?p.lastCommit.message:'No commits yet'),
-      h('div',{class:'kv'},h('span',null,'Open issues'),h('span',{style:'color:var(--color-neutral-300)'},p.openIssues))),
+      h('div',{class:'kv'},h('span',null,'Open issues'),h('span',{style:'color:var(--color-neutral-300)'},p.openIssues)),
+      trafficKv(p)),
     h('div',{class:'issues'},h('div',{class:'muted'},p.issues.length?'Open issues':'No open issues'),
       p.issues.slice(0,3).map(i=>h('div',{class:'i'},h('span',{class:'ell',style:'color:var(--color-neutral-300)'},i.title),h('span',{class:'faint',style:'flex:none'},short(i.createdAt))))));
+}
+
+// Unique views and clones over GitHub's 14-day window, as of the last daily read.
+function trafficKv(p){
+  const t=p.traffic;
+  if(!p.trafficCollected||!t)return null;
+  if(!t.last14)return h('div',{class:'kv'},h('span',null,'Traffic · 14d'),h('span',{class:'faint',title:'The token needs Administration: Read'},t.status==='unavailable'?'unavailable':'—'));
+  return h('div',{class:'kv',title:'Unique visitors and cloners over the last 14 days (GitHub traffic)'},h('span',null,'Unique · 14d'),
+    h('span',{style:'color:var(--color-neutral-300)'},t.last14.views.uniques+' views · '+t.last14.clones.uniques+' clones'));
 }
 
 // ---------------------------------------------------------------- compact
@@ -435,7 +494,7 @@ function compact(){
 
 // ---------------------------------------------------------------- detail
 function detail(id){
-  const p=projects().find(p=>p.id.toLowerCase()===id.toLowerCase());
+  const p=projects(true).find(p=>p.id.toLowerCase()===id.toLowerCase());
   const back=h('a',{href:'#/',class:'back'},'← All projects');
   if(!p)return [h('div',{class:'detail'},back,h('div',{class:'notfound'},h('div',{class:'h'},'No project at this address'),h('div',{class:'muted',style:'margin-top:6px'},id+" isn't in any connected source.")))];
   document.title=p.name+' · Project yard';
@@ -446,13 +505,16 @@ function detail(id){
         p.category?h('span',{class:'tag'},p.category):null,
         h('span',{class:'tag outline'},p.private?'private':'public'),
         p.archived?h('span',{class:'tag'},'archived'):null,
-        p.paused?h('span',{class:'tag outline'},'paused'):null),
+        p.paused?h('span',{class:'tag outline'},'paused'):null,
+        p.hidden?h('a',{class:'tag outline',href:'#/settings',style:'text-decoration:none'},'hidden'):null),
       p.summary?h('p',null,p.summary):null,
       h('div',{class:'links'},h('a',{href:p.url,target:'_blank',rel:'noopener'},p.id+' ↗'),p.flag?h('span',{class:p.flagClass},p.flag):null)),
     h('dl',{class:'stats'},
       stat('Open issues',p.openIssues),stat('Commits · 12w',p.commits12w),
       stat('Last commit',p.lastCommit?short(p.lastCommit.date):'—',p.lastClass),
-      stat('Stage changed',p.stageUpdated?short(p.stageUpdated):'—')));
+      stat('Stage changed',p.stageUpdated?short(p.stageUpdated):'—'),
+      stat('Stars',p.stars),stat('Forks',p.forks),stat('Watchers',p.watchers),
+      stat('Release downloads',p.releaseCount?p.downloads.toLocaleString():'—')));
 
   const steps=railSteps(p),pct=p.hasStage?p.idx/5*100:0;
   const stagePanel=h('section',{class:'panel stagepanel span2','aria-label':'Stage'},
@@ -502,16 +564,109 @@ function detail(id){
         h('div',{class:'sub'},isoDate(p.lastCommit.date)+' · '+ago(p.lastCommit.date))]:'—'),
       h('dt',null,'Stage set'),h('dd',null,isoDate(p.stageUpdated))));
 
-  return [h('div',{class:'detail'},back,head,h('div',{class:'dgrid'},stagePanel,notes,commits,issues,h('div',{class:'side'},activity,repo)))];
+  return [h('div',{class:'detail'},back,head,h('div',{class:'dgrid'},stagePanel,notes,commits,issues,h('div',{class:'side'},activity,repo,releasesPanel(p)),
+    trafficPanel(p),p.trafficCollected?h('div',{class:'side'},topList(p,'referrers'),topList(p,'paths')):null))];
+}
+const TRAFFIC_CHART_DAYS=90;
+function trafficPanel(p){
+  const t=p.traffic,ph=extra=>h('div',{class:'ph'},h('span',{class:'t'},'Traffic'),extra);
+  const panel=(...kids)=>h('section',{class:'panel span2','aria-label':'Traffic'},...kids);
+  if(!p.trafficCollected)return h('section',{class:'panel',style:'grid-column:1/-1','aria-label':'Traffic'},ph(),h('div',{class:'none'},"Traffic isn't collected for private repos. Set include_private = true under [traffic] in config.toml to include them."));
+  const days=t?Object.keys(t.views).sort():[];
+  if(!days.length)return panel(ph(),h('div',{class:'quiet'},t&&t.status==='unavailable'
+    ?'Traffic unavailable: the token needs the Administration: Read permission on this repo.'
+    :'Traffic is read once a day. It shows up after the next refresh.'));
+  // From the first tracked day (at most the last 90) to today; days never fetched stay unknown.
+  const today=new Date(DATA.generatedAt).toISOString().slice(0,10);
+  const first=days[0],from=new Date(Math.max(Date.parse(first),Date.parse(today)-(TRAFFIC_CHART_DAYS-1)*DAY));
+  const span=[];for(let d=from;d.toISOString().slice(0,10)<=today;d=new Date(d.getTime()+DAY))span.push(d.toISOString().slice(0,10));
+  const sum=(m,k)=>Object.values(t[m]).reduce((a,d)=>a+d[k],0);
+  return panel(ph(h('span',{class:'c'},'read '+ago(t.fetchedAt))),
+    t.status==='unavailable'?h('div',{class:'quiet'},'Traffic unavailable since the last read (the token needs Administration: Read). Showing what was collected before.'):null,
+    h('div',{class:'tcharts'},trafficChart('Views',t.views,span,'view'),trafficChart('Clones',t.clones,span,'clone')),
+    h('div',{class:'totals'},h('span',null,'Since '+first+':'),
+      h('span',null,h('b',null,sum('views','count').toLocaleString()),' views'),
+      h('span',null,h('b',null,sum('clones','count').toLocaleString()),' clones'),
+      h('span',{class:'faint',title:'Someone who visits on two days counts twice'},'daily uniques summed: '+sum('views','uniques').toLocaleString()+' views · '+sum('clones','uniques').toLocaleString()+' clones')));
+}
+function trafficChart(label,byDay,span,unit){
+  const vals=span.map(d=>byDay[d]),mx=Math.max(1,...vals.filter(Boolean).map(v=>v.count));
+  const last14=span.slice(-14).reduce((a,d)=>a+(byDay[d]?byDay[d].count:0),0);
+  return h('div',{class:'tchart'},
+    h('div',{class:'hd'},h('span',{class:'k'},label),
+      h('span',{class:'legend'},h('span',null,h('i',{class:'c-total'}),'Total'),h('span',null,h('i',{class:'c-unique'}),'Unique'))),
+    h('div',{class:'tbars',role:'img','aria-label':label+' per day, '+span[0]+' to '+span[span.length-1]+'. '+last14+' in the last 14 days.'},
+      span.map((d,i)=>{const v=vals[i];
+        if(!v)return h('span',{class:'d unknown',title:d+': not tracked'},h('i',{style:'height:2px'}));
+        const ht=n=>(n?Math.max(2,Math.round(n/mx*72)):0)+'px';
+        return h('span',{class:'d',title:d+': '+plural(v.count,unit)+', '+v.uniques+' unique'},
+          h('i',{class:'c-total',style:'height:'+ht(v.count)}),h('i',{class:'c-unique',style:'height:'+ht(v.uniques)}));
+      })),
+    h('div',{class:'axis'},h('span',null,span[0]),h('span',null,'peak '+mx+'/day'),h('span',null,'today')));
+}
+function topList(p,kind){
+  const t=p.traffic,title=kind==='referrers'?'Top referrers':'Popular pages';
+  const items=(t&&t[kind])||[],origin=p.url.startsWith('http')?new URL(p.url).origin:'';
+  return h('section',{class:'panel','aria-label':title},h('div',{class:'ph'},h('span',{class:'t'},title),h('span',{class:'c'},'14 days')),
+    !p.trafficCollected||!t||!t.fetchedAt?h('div',{class:'none'},'No traffic data.')
+    :items.length?h('ul',{class:'lines'},items.map(r=>h('li',null,
+      kind==='referrers'?h('span',{class:'ell'},r.referrer)
+        :h('a',{href:origin+r.path,target:'_blank',rel:'noopener',class:'ell',title:r.title},r.path.replace('/'+p.id,'')||'/'),
+      h('span',{class:'n'},r.count,h('span',{class:'faint'},r.uniques+' unique')))))
+    :h('div',{class:'none'},kind==='referrers'?'No referrers in the last 14 days.':'No page views in the last 14 days.'));
+}
+function releasesPanel(p){
+  return h('section',{class:'panel','aria-label':'Releases'},
+    h('div',{class:'ph'},h('span',{class:'t'},'Release downloads'),p.releaseCount?h('span',{class:'c'},p.downloads.toLocaleString()+' total'):null),
+    p.releases.length?h('ul',{class:'lines'},p.releases.map(r=>h('li',null,
+      h('a',{href:r.url,target:'_blank',rel:'noopener',class:'ell',title:r.name},r.tag),
+      h('span',{class:'faint',style:'font-size:12px;white-space:nowrap'},isoDate(r.publishedAt)),
+      h('span',{class:'n'},plural(r.downloads,'download'))))):h('div',{class:'none'},'No releases.'),
+    p.releaseCount>p.releases.length?h('div',{class:'quiet'},'Counts the newest '+p.releases.length+' of '+p.releaseCount+' releases.'):null,
+    p.releaseCount?h('div',{class:'quiet'},'Downloads of files attached to releases. Container image pulls aren\'t available from GitHub\'s API.'):null);
 }
 function stat(label,value,cls){return h('div',null,h('dt',null,label),h('dd',{class:cls||null},value));}
 
+// ---------------------------------------------------------------- settings
+let saving=false,saveMsg=null;
+function settings(){
+  document.title='Settings · Project yard';
+  const list=[...DATA.projects].sort((a,b)=>a.id.localeCompare(b.id));
+  const status=h('div',{class:'status',role:'status'},saveMsg?h('span',{class:saveMsg.err?'error':'muted'},saveMsg.text):null);
+  const rows=list.map(p=>h('div',{class:'srow rule'+(p.hidden?' off':'')},
+    h('div',{class:'nm'},h('span',null,p.name,p.private?h('span',{class:'faint',style:'font-size:11px;margin-left:8px'},'private'):null,
+        p.archived?h('span',{class:'tag sm',style:'margin-left:8px'},'archived'):null),
+      h('span',{class:'id'},p.id)),
+    h('label',{class:'switch'},p.hidden?'Hidden':'Shown',
+      h('input',{type:'checkbox',role:'switch',checked:!p.hidden,disabled:saving,'aria-label':'Show '+p.id+' on the board',
+        onchange:e=>saveHidden(p.id,!e.target.checked)}))));
+  return [h('div',{class:'settings'},h('a',{href:'#/',class:'back'},'← All projects'),
+    h('h1',null,'Settings'),
+    h('p',{class:'intro'},'Every repo the collector finds. Hidden repos drop off the board but stay listed here. New repos are shown. Repos that config.toml leaves out (its exclude list, plus archived repos and forks unless it includes them) never appear here.'),
+    status,
+    list.length?h('div',null,rows):h('div',{class:'none'},'No repos yet. They appear after the first refresh.'))];
+}
+async function saveHidden(id,hide){
+  const hidden=new Set(DATA.projects.filter(p=>p.hidden).map(p=>p.id));
+  hide?hidden.add(id):hidden.delete(id);
+  saving=true;saveMsg=null;render();
+  try{
+    const r=await fetch('api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hidden:[...hidden]})});
+    const body=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(body.error||('HTTP '+r.status));
+    const saved=new Set(body.hidden.map(s=>s.toLowerCase()));
+    for(const p of DATA.projects)p.hidden=saved.has(p.id.toLowerCase());
+    saveMsg={text:(hide?'Hid ':'Showing ')+id+'.'};
+  }catch(e){saveMsg={err:true,text:"Couldn't save: "+e.message};}
+  saving=false;render();
+}
+
 // ---------------------------------------------------------------- routing + refresh
 function render(){
-  const m=/^#\/(.+\/.+)$/.exec(decodeURIComponent(location.hash));
+  const hash=decodeURIComponent(location.hash),m=/^#\/(.+\/.+)$/.exec(hash);
   document.title='Project yard';
   const app=document.getElementById('app');
-  app.replaceChildren(...(m?detail(m[1]):COMPACT.matches?compact():overview()).filter(Boolean));
+  app.replaceChildren(...(hash==='#/settings'?settings():m?detail(m[1]):COMPACT.matches?compact():overview()).filter(Boolean));
 }
 let lastRoute=location.hash;
 addEventListener('hashchange',()=>{render();if(location.hash!==lastRoute)scrollTo(0,0);lastRoute=location.hash;});
@@ -520,7 +675,7 @@ render();
 
 // The server rewrites data.json every refresh; pick it up without reloading the page.
 setInterval(async()=>{
-  if(document.visibilityState!=='visible')return;
+  if(document.visibilityState!=='visible'||saving)return;
   try{const r=await fetch('data.json',{cache:'no-store'});if(r.ok){DATA=await r.json();render();}}catch{}
 },5*60*1000);
 </script>

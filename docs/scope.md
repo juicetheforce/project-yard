@@ -26,6 +26,37 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   query for a page of repos returned HTTP 502 (GitHub timeout), hence the split.
 - [inference] Page size 20 keeps the main query under GitHub's timeout for larger orgs; untested past 12 repos.
 
+### v0.3: metrics and show/hide (M4)
+- [confirmed] 2026-10-02 against GitHub docs: the REST traffic endpoints (`/traffic/views`, `/traffic/clones`
+  with `per=day`, `/traffic/popular/referrers`, `/traffic/popular/paths`) cover the last 14 days, align days
+  to UTC midnight, and need the fine-grained permission Administration: Read.
+- [decided] Traffic is read once a day per repo (`TRAFFIC_REFRESH`), public repos only unless
+  `[traffic] include_private = true`. Daily counts are merged by date into `/data/traffic.json`, kept
+  separate from `last-good.json` because it can't be rebuilt. A failed read changes nothing stored; network
+  errors retry after an hour, 403/404 marks the repo "unavailable" (quiet note, no banner) and retries daily.
+- [inference] GitHub leaves zero-traffic days out of the daily list, so every day of the 14-day window
+  missing from a response is stored as 0. Days never covered by a read stay unknown in the chart.
+- [inference] A 403 or 404 from a traffic endpoint without rate-limit headers means the token lacks the
+  permission. Not yet checked against a live token without Administration: Read.
+- [decided] "Unique · 14d" on the overview is GitHub's own 14-day unique count from the latest read.
+  Totals since tracking started sum daily counts; the summed daily uniques are labelled as such (they
+  double-count repeat visitors).
+- [confirmed] 2026-10-02 against GitHub docs: `stargazerCount`, `forkCount`, `watchers { totalCount }`,
+  `releases` and `ReleaseAsset.downloadCount` exist in GraphQL. Added to the main query: the newest 10
+  releases (drafts skipped) and 20 assets each. [inference] cheap enough not to trip the 502 seen with
+  weekly counts; untested live.
+- [confirmed] 2026-10-02: GHCR pull counts aren't available. The REST packages API has no download field,
+  and the GraphQL packages API doesn't support registries with granular permissions (the Container
+  registry is one). Skipped; the page says so under release downloads.
+- [decided] Show/hide lives on a settings screen (`#/settings`, gear icon), saved to `/data/settings.json`
+  as a list of hidden repos, so new repos default to shown. `config.toml`'s `exclude` list is unchanged and
+  applies first. Hidden repos still have traffic collected, so unhiding loses nothing.
+- [decided] `POST /api/settings` accepts only `Content-Type: application/json` (cross-site forms can't send
+  it without a CORS preflight, which is never answered), requires an `Origin` matching `Host` or
+  `X-Forwarded-Host`, rejects `Sec-Fetch-Site` other than same-origin, and refuses unknown repo names.
+  [inference] DNS rebinding could get past the Origin check; accepted, since the page is LAN-only and the
+  worst outcome is hidden repos.
+
 ## Open
 - [open] Repos that hold more than one project, or projects with no repo.
 - [open] Whether to add Claude Code session activity (local transcripts) as a signal. Leaning no: per-machine and messy.
@@ -54,6 +85,8 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   alongside M4.
 - M4 Feature requests for the next release. Record each under Open (or Decisions once agreed) before
   building it; ship as v0.3 per README → Releasing.
+  - [confirmed] 2026-10-02: GitHub metrics (traffic history, stars/forks/watchers, release downloads) and the
+    show/hide settings screen built and tested against fixtures (`dev/demo.py`). Not yet run against a live token.
 - M5+ Re-evaluate: filters, second source (an org), anything the live board shows is missing.
 
 ## Testing
@@ -61,4 +94,6 @@ Monkeypatch `app.graphql` to return a fixture shaped like the GraphQL response
 (`repositoryOwner.repositories.nodes[]` with `stageFile`, `issues{totalCount,nodes}`, `defaultBranchRef.target.{commits,w0..w11,stageHistory}` where each `wN` is `{totalCount}`).
 `app.graphql(api, token, query, variables, key)` is also called with `key="repository"` for the 52-week query
 (`repository.defaultBranchRef.target.w0..w51`); branch on `key`. Then
-point `DATA_DIR` at a temp dir, call `app.refresh(cfg, {})`, then open `site/index.html`.
+point `DATA_DIR` at a temp dir, call `app.refresh(app.Board(cfg))`, then open `site/index.html`.
+Traffic goes through `app.rest(url, token)`; monkeypatch it too, returning the REST shapes or raising
+`app.TrafficUnavailable` (no permission) or `app.SourceError` (network). `dev/demo.py` does all of this.
