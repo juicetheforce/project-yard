@@ -4,4 +4,4 @@ stage = "live"
 next = "M4: collect and scope feature requests for v0.3 (record in docs/scope.md first)"
 category = "Homelab"
 paused = false
-focus = true
+focus = false
