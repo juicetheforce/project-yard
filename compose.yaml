@@ -3,7 +3,7 @@
 # For a local build instead, see compose.build.yaml.
 services:
   project-dashboard:
-    image: ghcr.io/juicetheforce/project-yard:v0.2
+    image: ghcr.io/juicetheforce/project-yard:v0.3
     container_name: project-dashboard
     restart: unless-stopped
     ports:

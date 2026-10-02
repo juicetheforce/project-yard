@@ -1,7 +1,7 @@
 name = "Project yard"
 summary = "Self-hosted dashboard of every project's stage and commit activity across GitHub."
 stage = "live"
-next = "v0.3: add Administration: Read to the token, run the build live to confirm traffic, then release v0.3"
+next = "M3: watch v0.3 on the host (traffic history building up); collect feedback for v0.4"
 category = "Homelab"
 paused = false
 focus = false
