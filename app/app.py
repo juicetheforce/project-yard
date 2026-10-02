@@ -49,7 +49,6 @@ ASSETS = 20         # assets read per release
 DEFAULT_API = "https://api.github.com/graphql"
 TRAFFIC_REFRESH = timedelta(hours=24)  # traffic is daily data; read it once a day per repo
 TRAFFIC_RETRY = timedelta(hours=1)     # after a network error or GitHub hiccup
-TRAFFIC_DAYS = 14                      # how far back GitHub's traffic endpoints go
 
 log = logging.getLogger("dashboard")
 
@@ -247,8 +246,8 @@ def fetch_traffic(src, repos, traffic, include_private, now):
             log.warning("%s: traffic not updated: %s", rid, e)
             t["nextFetch"] = (now + TRAFFIC_RETRY).isoformat()
             continue
-        merge_days(t["views"], views.get("views") or [], now)
-        merge_days(t["clones"], clones.get("clones") or [], now)
+        merge_days(t["views"], views.get("views") or [])
+        merge_days(t["clones"], clones.get("clones") or [])
         t["last14"] = {
             "views": {"count": views.get("count", 0), "uniques": views.get("uniques", 0)},
             "clones": {"count": clones.get("count", 0), "uniques": clones.get("uniques", 0)},
@@ -264,15 +263,13 @@ def fetch_traffic(src, repos, traffic, include_private, now):
     return done, unavailable
 
 
-def merge_days(stored, days, now):
+def merge_days(stored, days):
     """Fold one response's daily counts into `stored` ({"YYYY-MM-DD": {count, uniques}}).
 
-    GitHub leaves out days with no traffic, so every day in the 14-day window that's
-    missing from the response is stored as 0. Days outside the window are never touched.
+    GitHub lists every day of its window, zero days included, and the window ends a day
+    or two before today, differently per repo. So only the days it returns are written;
+    a newer read of the same day replaces the older one.
     """
-    today = now.date()
-    for i in range(TRAFFIC_DAYS):
-        stored[(today - timedelta(days=i)).isoformat()] = {"count": 0, "uniques": 0}
     for d in days:
         stored[d["timestamp"][:10]] = {"count": d["count"], "uniques": d["uniques"]}
 

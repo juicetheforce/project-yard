@@ -110,7 +110,7 @@ def fake_graphql(api_url, token, query, variables, key):
 
 
 def daily(days_ago, name):
-    n = (len(name) * 7 + days_ago * 5) % 23
+    n = (len(name) * 7 + days_ago * 5) % 23 if days_ago % 4 else 0
     return {"timestamp": (NOW - timedelta(days=days_ago)).strftime("%Y-%m-%dT00:00:00Z"), "count": n, "uniques": n // 3}
 
 
@@ -121,7 +121,7 @@ def fake_rest(url, token):
         raise app.TrafficUnavailable("HTTP 403")
     if url.endswith("/views?per=day") or url.endswith("/clones?per=day"):
         kind = "views" if "/views" in url else "clones"
-        days = [daily(d, name + kind) for d in range(14) if d % 4]  # some days missing, as GitHub omits zeros
+        days = [daily(d, name + kind) for d in range(14, 0, -1)]  # GitHub's window ends before today
         return {"count": sum(d["count"] for d in days), "uniques": max(d["uniques"] for d in days) + 3, kind: days}
     if url.endswith("/referrers"):
         return [{"referrer": r, "count": c, "uniques": c // 2} for r, c in [("github.com", 41), ("news.ycombinator.com", 17), ("google.com", 6)]]

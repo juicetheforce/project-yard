@@ -576,10 +576,11 @@ function trafficPanel(p){
   if(!days.length)return panel(ph(),h('div',{class:'quiet'},t&&t.status==='unavailable'
     ?'Traffic unavailable: the token needs the Administration: Read permission on this repo.'
     :'Traffic is read once a day. It shows up after the next refresh.'));
-  // From the first tracked day (at most the last 90) to today; days never fetched stay unknown.
-  const today=new Date(DATA.generatedAt).toISOString().slice(0,10);
-  const first=days[0],from=new Date(Math.max(Date.parse(first),Date.parse(today)-(TRAFFIC_CHART_DAYS-1)*DAY));
-  const span=[];for(let d=from;d.toISOString().slice(0,10)<=today;d=new Date(d.getTime()+DAY))span.push(d.toISOString().slice(0,10));
+  // From the first tracked day (at most 90 back) to the latest day GitHub has reported, which
+  // trails today by a day or two. Days never returned by a read stay unknown.
+  const first=days[0],latest=days[days.length-1];
+  const from=new Date(Math.max(Date.parse(first),Date.parse(latest)-(TRAFFIC_CHART_DAYS-1)*DAY));
+  const span=[];for(let d=from;d.toISOString().slice(0,10)<=latest;d=new Date(d.getTime()+DAY))span.push(d.toISOString().slice(0,10));
   const sum=(m,k)=>Object.values(t[m]).reduce((a,d)=>a+d[k],0);
   return panel(ph(h('span',{class:'c'},'read '+ago(t.fetchedAt))),
     t.status==='unavailable'?h('div',{class:'quiet'},'Traffic unavailable since the last read (the token needs Administration: Read). Showing what was collected before.'):null,
@@ -602,7 +603,7 @@ function trafficChart(label,byDay,span,unit){
         return h('span',{class:'d',title:d+': '+plural(v.count,unit)+', '+v.uniques+' unique'},
           h('i',{class:'c-total',style:'height:'+ht(v.count)}),h('i',{class:'c-unique',style:'height:'+ht(v.uniques)}));
       })),
-    h('div',{class:'axis'},h('span',null,span[0]),h('span',null,'peak '+mx+'/day'),h('span',null,'today')));
+    h('div',{class:'axis'},h('span',null,span[0]),h('span',null,'peak '+mx+'/day'),h('span',null,span[span.length-1])));
 }
 function topList(p,kind){
   const t=p.traffic,title=kind==='referrers'?'Top referrers':'Popular pages';

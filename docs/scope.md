@@ -34,17 +34,23 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   `[traffic] include_private = true`. Daily counts are merged by date into `/data/traffic.json`, kept
   separate from `last-good.json` because it can't be rebuilt. A failed read changes nothing stored; network
   errors retry after an hour, 403/404 marks the repo "unavailable" (quiet note, no banner) and retries daily.
-- [inference] GitHub leaves zero-traffic days out of the daily list, so every day of the 14-day window
-  missing from a response is stored as 0. Days never covered by a read stay unknown in the chart.
-- [inference] A 403 or 404 from a traffic endpoint without rate-limit headers means the token lacks the
-  permission. Not yet checked against a live token without Administration: Read.
+- [confirmed] 2026-10-02 live: the daily list always has 14 entries, zero days included, and ends a day or
+  two before today, differently per repo (one ended Sep 30, another Oct 1, read Oct 2 08:00 UTC). Only
+  returned days are stored; a day never returned stays unknown in the chart. (An earlier build zero-filled
+  a guessed window, which wrote false zeros for days GitHub hadn't reported yet.)
+- [confirmed] 2026-10-02 live: a fine-grained token without access gets 403 "Resource not accessible by
+  personal access token" (tested on a repo outside the token's owner), handled as "unavailable".
+  No token gives 401, which the main query already reports as a bad token.
 - [decided] "Unique · 14d" on the overview is GitHub's own 14-day unique count from the latest read.
   Totals since tracking started sum daily counts; the summed daily uniques are labelled as such (they
   double-count repeat visitors).
 - [confirmed] 2026-10-02 against GitHub docs: `stargazerCount`, `forkCount`, `watchers { totalCount }`,
   `releases` and `ReleaseAsset.downloadCount` exist in GraphQL. Added to the main query: the newest 10
-  releases (drafts skipped) and 20 assets each. [inference] cheap enough not to trip the 502 seen with
-  weekly counts; untested live.
+  releases (drafts skipped) and 20 assets each.
+- [confirmed] 2026-10-02 live, 12 repos, one page: main query 5.7–6.9 s and 9 points with releases, 4.8–5.3 s
+  and 7 points without (3 runs each). Full first run incl. 12 year queries and 24 traffic calls: 27 s.
+  [inference] a full 20-repo page may get close to GitHub's timeout; a 502 shows the usual banner and
+  retries next refresh. Lower RELEASES or PAGE_SIZE if it happens.
 - [confirmed] 2026-10-02: GHCR pull counts aren't available. The REST packages API has no download field,
   and the GraphQL packages API doesn't support registries with granular permissions (the Container
   registry is one). Skipped; the page says so under release downloads.
@@ -86,7 +92,8 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
 - M4 Feature requests for the next release. Record each under Open (or Decisions once agreed) before
   building it; ship as v0.3 per README → Releasing.
   - [confirmed] 2026-10-02: GitHub metrics (traffic history, stars/forks/watchers, release downloads) and the
-    show/hide settings screen built and tested against fixtures (`dev/demo.py`). Not yet run against a live token.
+    show/hide settings screen built and tested against fixtures (`dev/demo.py`). Run live the same day:
+    traffic read for all 6 public repos of juicetheforce; see the v0.3 decisions above.
 - M5+ Re-evaluate: filters, second source (an org), anything the live board shows is missing.
 
 ## Testing
