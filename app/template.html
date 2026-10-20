@@ -604,7 +604,10 @@ p{margin:0}
 .switch[aria-checked=true]{background:var(--color-accent-700);border-color:var(--color-accent-500)}
 .switch[aria-checked=true]::after{left:18px;background:var(--color-accent-200)}
 
+.foot{padding:0 24px 24px;font-size:11px;color:var(--color-neutral-600)}
+.foot a{color:inherit}
 @media (max-width:560px){
+  .foot{padding:0 12px 12px}
   .detail,.settings{padding:10px 12px 32px}
   .d-id h1,.s-head h1{font-size:24px}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
@@ -1119,7 +1122,13 @@ function render(){
   const hash=decodeURIComponent(location.hash),m=/^#\/(.+\/.+)$/.exec(hash);
   document.title='Project yard';
   const app=document.getElementById('app');
-  app.replaceChildren(...(hash==='#/settings'?settings():m?detail(m[1]):COMPACT.matches?compact():overview()).filter(Boolean));
+  app.replaceChildren(...(hash==='#/settings'?settings():m?detail(m[1]):COMPACT.matches?compact():overview()).filter(Boolean),footer());
+}
+// Which release is running: the image's build arg, or "development build" for a local run.
+function footer(){
+  const v=DATA.version;
+  return h('footer',{class:'foot'},'Project yard ',
+    v&&v!=='dev'?h('a',{href:'https://github.com/juicetheforce/project-yard/tree/'+encodeURIComponent(v),target:'_blank',rel:'noopener'},v):'· development build');
 }
 let lastRoute=location.hash;
 addEventListener('hashchange',()=>{render();if(location.hash!==lastRoute)scrollTo(0,0);lastRoute=location.hash;});

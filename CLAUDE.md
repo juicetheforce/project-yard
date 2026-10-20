@@ -37,9 +37,9 @@ No live token in dev by default. Test the collector against fixture data by monk
 
 ## Deploy
 
-Hosts run the published image `ghcr.io/juicetheforce/project-yard:<tag>` (README → Deploy, Releasing).
-A release bumps the image version in `compose.yaml` in the commit that gets tagged; the workflow refuses a
-tag that doesn't match. Don't tag or push tags unless asked. Details of the maintainer's own host live in
+Hosts run the published image `ghcr.io/juicetheforce/project-yard:latest` (README → Deploy, Updating,
+Releasing) and roll back by pinning a release tag in `compose.yaml`. A `v*` tag builds `:<tag>` and
+`:latest` with the tag as the version shown in the page footer. Don't tag or push tags unless asked. Details of the maintainer's own host live in
 `CLAUDE.local.md` (gitignored), when present.
 
 ## Project status

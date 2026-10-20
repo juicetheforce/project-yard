@@ -105,6 +105,10 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   (MIT) with one clean first commit; the earlier private history stays in a separate private repo. Tag
   pushes build `ghcr.io/juicetheforce/project-yard:<tag>` and `:latest`; hosts need only `compose.yaml`,
   `config.toml` and `.env`, and update by bumping the pinned version and pulling. First public release: v0.2.
+  [decided] 2026-10-20: hosts run `:latest` and update with `docker compose pull && docker compose up -d`;
+  rolling back means pinning a release tag in `compose.yaml`. The release workflow no longer checks
+  `compose.yaml` against the tag; it passes the tag as the `VERSION` build arg, shown in the page footer.
+  Replaces "update by bumping the pinned version" above.
   [decided] 2026-09-29: stage files are created by Claude Code per repo via the global block, proposed
   from the repo itself on its first session. No seed files.
 - M3 Watch real updates as repos pick up their stage files; fix what the board shows is missing. Running

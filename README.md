@@ -56,13 +56,15 @@ version in `compose.yaml`.
 ### Get the three files
 
     mkdir -p ~/project-yard && cd ~/project-yard
-    base=https://raw.githubusercontent.com/juicetheforce/project-yard/v0.5
+    base=https://raw.githubusercontent.com/juicetheforce/project-yard/v0.6
     curl -fsSLo compose.yaml $base/compose.yaml
     curl -fsSLo config.toml  $base/config.example.toml
     curl -fsSLo .env         $base/.env.example
     chmod 600 .env
 
-`v0.5` is the release to run; the newest is listed at https://github.com/juicetheforce/project-yard/tags.
+`v0.6` is the newest release when this was written; releases are listed at
+https://github.com/juicetheforce/project-yard/tags. `compose.yaml` runs `:latest`, the newest
+release, and the page footer shows which version is running.
 
 ### Fill them in
 
@@ -108,21 +110,35 @@ on your LAN and don't expose it to the internet.
 
 ## 4. Updating
 
+**Back up the data volume first** (see "Backing up the data volume" below): it holds traffic
+history that GitHub no longer has. Then:
+
     cd ~/project-yard
-    grep image: compose.yaml                                     # the version running now
-    sed -i 's|project-yard:v0.2|project-yard:v0.3|' compose.yaml # bump to the new version
     docker compose pull
     docker compose up -d
-    docker compose logs --tail 20
+    docker compose logs --tail 20       # "serving on :8087 (version v0.6)" names the version
 
-Replace `v0.2` and `v0.3` with the version you're on and the one you're moving to. Before
-bumping, look at what changed (https://github.com/juicetheforce/project-yard/compare/v0.2...v0.3):
+`compose.yaml` runs `:latest`, so `pull` fetches the newest release. The page footer shows the
+version that's running. Before updating, look at what changed
+(https://github.com/juicetheforce/project-yard/tags, then compare your version with the newest):
 if `config.example.toml` or `.env.example` gained settings, copy them into your own files; if
-`compose.yaml` changed beyond the version, download it again as in step 2.
+`compose.yaml` changed, download it again as in step 2.
 
 The last good data, the cached year of activity, traffic history and settings live in the
-`dashboard-data` volume, so they survive updates. **To roll back,** set the older version and run
-the same `pull` and `up -d`.
+`dashboard-data` volume, so they survive updates.
+
+**To roll back,** pin a specific release in `compose.yaml` and start it again:
+
+    sed -i 's|project-yard:latest|project-yard:v0.5|' compose.yaml   # the version to go back to
+    docker compose pull
+    docker compose up -d
+
+It stays on that version until you change the line back to `:latest`. If the newer version changed
+the files in the volume, restore your backup too.
+
+After editing `config.toml` or `.env` (the container reads them only at start):
+
+    docker compose up -d --force-recreate
 
 ## Backing up the data volume
 
@@ -153,13 +169,6 @@ JSON from the dashboard's own page (same origin) and only names of repos it alre
 fails with "Cross-origin request refused" behind a reverse proxy, make the proxy pass the original
 `Host` header (Caddy does this by default).
 
-After editing `config.toml` or `.env` (the container reads them only at start):
-
-    docker compose up -d --force-recreate
-
-`compose.yaml` pins a version on purpose, so the host changes only when you bump it. A `:latest`
-tag is also published, for trying things out.
-
 ## Adding another account or org later
 
 1. Add a `[[sources]]` block to `config.toml`.
@@ -189,17 +198,17 @@ the image locally instead of pulling it:
 
 ## Releasing
 
-1. Bump the image version in `compose.yaml` (e.g. `:v0.2` → `:v0.3`), commit, and push.
+1. Update the version in the README's deploy step (`base=…/v0.6`), commit, and push.
 2. Tag that commit and push the tag:
 
-       git tag -a v0.3 -m "v0.3: what changed, in a line"
-       git push origin v0.3
+       git tag -a v0.7 -m "v0.7: what changed, in a line"
+       git push origin v0.7
 
 3. The "Release image" workflow (Actions tab) builds and publishes
-   `ghcr.io/juicetheforce/project-yard:v0.3` and `:latest`. It refuses to publish if `compose.yaml`
-   doesn't point at the tag's version.
+   `ghcr.io/juicetheforce/project-yard:v0.7` and `:latest`, with the tag built in as the version the
+   page footer shows. Hosts pick it up on their next `docker compose pull && docker compose up -d`.
 
-Tags are never moved or reused: a fix after `v0.3` goes out as `v0.4`. If a host's `docker compose pull`
+Tags are never moved or reused: a fix after `v0.7` goes out as `v0.8`. If a host's `docker compose pull`
 is refused after the first release, the package is still private: on GitHub, open the package's
 settings (your profile → Packages → project-yard) and change its visibility to public.
 

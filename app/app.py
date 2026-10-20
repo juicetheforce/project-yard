@@ -36,6 +36,7 @@ SETTINGS_FILE = DATA_DIR / "settings.json"  # choices made on the settings scree
 SEEN_FILE = DATA_DIR / "seen.json"          # when each repo first appeared ("new" in Settings)
 TEMPLATE = Path(__file__).with_name("template.html")
 PORT = int(os.environ.get("PORT", "8087"))
+VERSION = os.environ.get("APP_VERSION", "dev")  # set by the image build; shown in the page footer
 
 STAGE_FILE = ".project.toml"
 STAGES = ["idea", "scoping", "design", "building", "testing", "live"]
@@ -670,6 +671,7 @@ def render(board, now):
                              "trafficCollected": collected})
     data = {
         "generatedAt": now.isoformat(),
+        "version": VERSION,
         "staleDays": cfg["stale_days"],
         "refreshMinutes": cfg["refresh_minutes"],
         "stages": STAGES,
@@ -801,7 +803,7 @@ def main():
     Handler.board = board
     threading.Thread(target=refresh_loop, args=(board,), daemon=True).start()
     server = ThreadingHTTPServer(("0.0.0.0", PORT), partial(Handler, directory=str(SITE_DIR)))
-    log.info("serving on :%d", PORT)
+    log.info("serving on :%d (version %s)", PORT, VERSION)
     server.serve_forever()
 
 

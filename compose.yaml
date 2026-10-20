@@ -1,9 +1,10 @@
 # Runs the published image. On the host this file sits next to config.toml and .env;
-# nothing else from the repo is needed. To update, change the version below (README → Updating).
-# For a local build instead, see compose.build.yaml.
+# nothing else from the repo is needed. :latest is the newest release; to update, run
+# docker compose pull && docker compose up -d. To roll back, replace :latest with a
+# release tag such as :v0.5 (README → Updating). For a local build, see compose.build.yaml.
 services:
   project-dashboard:
-    image: ghcr.io/juicetheforce/project-yard:v0.5
+    image: ghcr.io/juicetheforce/project-yard:latest
     container_name: project-dashboard
     restart: unless-stopped
     ports:
