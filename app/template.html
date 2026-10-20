@@ -257,12 +257,14 @@ select.input option{background:var(--color-surface)}
 .earlier .o .d{color:var(--color-neutral-600)}
 .earlier .o .n{margin-left:auto;color:var(--color-neutral-300)}
 .notes-cols{column-width:340px;column-gap:40px;column-rule:1px solid var(--color-divider);font-size:13.5px;line-height:1.55;color:var(--color-neutral-300)}
-.notes-cols .sec{padding-bottom:16px;break-inside:avoid-column}
+/* Sections flow across columns; only paragraphs and bullets stay whole, and a heading never ends a column. */
+.notes-cols .sec{padding-bottom:16px}
 .notes-cols .st{break-after:avoid;font-family:var(--font-heading);font-weight:500;font-size:13.5px;color:var(--color-text);margin-bottom:5px;display:flex;align-items:center;gap:8px}
 .notes-cols .st::before{content:"";width:10px;height:1px;flex:none;background:var(--color-accent)}
-.notes-cols p{margin:0 0 7px;text-wrap:pretty}
-.notes-cols ul{margin:0 0 7px;padding-left:18px;display:flex;flex-direction:column;gap:3px}
-.notes-cols li{text-wrap:pretty}
+.notes-cols p{margin:0 0 7px;text-wrap:pretty;break-inside:avoid}
+.notes-cols ul{margin:0 0 7px;padding-left:18px}
+.notes-cols li{text-wrap:pretty;break-inside:avoid}
+.notes-cols li+li{margin-top:3px}
 .commits{max-height:372px}
 .commits .date{flex:none;width:78px;color:var(--color-neutral-500);font-size:12px}
 .commits a{flex:1}
