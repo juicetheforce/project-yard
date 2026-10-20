@@ -6,33 +6,319 @@
 <title>Project yard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
 <style>
-/* Design: docs/design/v3/ (Nocturne tokens, Project yard v3 handoff). Dark only. */
-:root{
-  color-scheme:dark;
-  --color-bg:#161826; --color-surface:#232532; --color-text:#e9e9ed;
-  --color-accent:#9184d9;
-  --color-divider:color-mix(in srgb,#e9e9ed 16%,transparent);
-  --color-rule:color-mix(in srgb,#e9e9ed 8%,transparent);
-  --color-neutral-100:#f3f5fe; --color-neutral-300:#cfd3e5; --color-neutral-400:#b2b6ca; --color-neutral-500:#9397ab;
-  --color-neutral-600:#75798c; --color-neutral-700:#595d6c; --color-neutral-800:#3f424d; --color-neutral-900:#292b31;
-  --color-accent-100:#f5f4ff; --color-accent-200:#e7e5fe; --color-accent-300:#d2cefd; --color-accent-400:#b5abfc; --color-accent-500:#968ae0;
-  --color-accent-600:#796cbf; --color-accent-700:#5d5294; --color-accent-800:#423a6a; --color-accent-900:#2b2741;
-  --color-error:oklch(0.74 0.13 25); --color-warn:oklch(0.8 0.1 80);
-  --font-heading:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --radius-sm:4px; --radius-md:8px;
-  --shadow-sm:0 0 0 1px #3f424d;
-  --shadow-md:0 0 0 1px #595d6c,0 6px 18px rgba(0,0,0,.55);
+/* ==========================================================================
+   Nocturne, inlined from docs/design/v5/source/_ds/…/styles.css.
+   The only change: its Google Fonts @import is removed, because the page is
+   LAN-only and self-contained. "Inter" is used if installed, else system-ui.
+   ========================================================================== */
+/* Nocturne — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
+
+:root {
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9; /* review round 7 (Barron): the accent moves to
+     the product's blurple — OKLCH hue 289.2, the hue of the app's own Pro
+     accent (#9a8fe0, --om-accent-pro) — at the same lightness the steel
+     accent held (L 0.660, so the documented ratios survive) and chroma
+     in the product blurple's own range (its token sits at C 0.118; the
+     accent takes 0.125, from the old steel's 0.030):
+     the accent now reads as an accent rather than another neutral. */
+  --color-accent-2: #a7a1db; /* the machine-derived stand-in follows: same
+     hue, same L 0.734, chroma at the same 2:3 proportion it held */
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
+     same step of any role matches the others in visual value. */
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --color-accent-2-100: #f5f4ff;
+  --color-accent-2-200: #e7e5fe;
+  --color-accent-2-300: #d2cefd;
+  --color-accent-2-400: #b5afe8;
+  --color-accent-2-500: #9690c9;
+  --color-accent-2-600: #7972a9;
+  --color-accent-2-700: #5c5783;
+  --color-accent-2-800: #423e5d;
+  --color-accent-2-900: #2b293a;
+
+  /* Deck section-divider ground — review round 3: saturation as presence.
+     Dividers take a saturated deep indigo (hue 277, the neutral ramp's own
+     family; C 0.094 — written when the accent held C 0.030, before the
+     round-7 blurple raised it past the ground's) with a lighter bloom and
+     a ghost tint of the same hue, while the slide grounds stay
+     desaturated. Deck-scale fills only — not interface colors. */
+  --color-section: #262a60;
+  --color-section-glow: #353b80;
+  --color-section-ghost: #4c5397;
+
+  --font-heading: "Inter", system-ui, sans-serif;
+  --font-heading-weight: 500;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --space-1: 2.8px;
+  --space-2: 5.6px;
+  --space-3: 8.4px;
+  --space-4: 11.2px;
+  --space-6: 16.8px;
+  --space-8: 22.4px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  /* Elevation — derived from the ground: soft ink-tinted shadows on a
+     light theme, a hairline edge + ambient darkness on a dark one. */
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0,0,0,0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65);
 }
-*,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--color-bg);color:var(--color-text);font:14px/1.45 var(--font-body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
-a{color:var(--color-accent);text-underline-offset:3px;transition:color .15s}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+
+.lighten{mix-blend-mode:lighten;background-color:transparent}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Components — built with the tokens above. Plain CSS
+   on plain HTML: no JavaScript, no build step. Each class is documented in
+   readme.md and demonstrated in foundations/ and components/.
+   ══════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; }
+h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+img { display: block; max-width: 100%; }
+figure { margin: 0; }
+figcaption {
+  font-size: 11px; margin-top: var(--space-1);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
+/* — rules — */
+/* Rules fade to transparent at both ends instead of stopping cleanly — a
+   Nocturne signature. The ramp is 48px an end (one deck baseline unit),
+   painted from the same divider token. Freestanding rules fade; box
+   outlines, in-control separators, and short accent marks stay solid. */
+.hr {
+  height: 1px; border: 0; margin: var(--space-4) 0;
+  background: linear-gradient(to right,
+    transparent, var(--color-divider) 48px,
+    var(--color-divider) calc(100% - 48px), transparent);
+}
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 14px; line-height: 1.2; color: var(--color-text); /* matches the .input's 14px —
+     the pair sits side by side in sign-up rows */
+  background: transparent; border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: var(--radius-md);
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
+.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-block { width: 100%; margin-top: var(--space-2); }
+
+/* — forms — */
+.field > label {
+  display: block; font-size: 12px; margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.input {
+  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
+  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+textarea.input { min-height: 90px; resize: vertical; }
+.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.radio input, .seg-opt input {
+  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+}
+.radio .dot {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--color-divider);
+}
+.radio:hover .dot { border-color: var(--color-accent); }
+.radio input:checked + .dot {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 4px var(--color-bg);
+}
+.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.seg {
+  display: inline-flex; overflow: hidden;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer;
+}
+.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+.seg-opt:has(input:checked) { color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+/* — cards — */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+}
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 17px; line-height: 1.2;
+}
+.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
+.card-meta {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+.elev-sm { box-shadow: var(--shadow-sm); }
+.elev-md { box-shadow: var(--shadow-md); }
+.elev-lg { box-shadow: var(--shadow-lg); }
+
+/* — tags — */
+.tag {
+  display: inline-flex; align-items: center; font-size: 11px;
+  letter-spacing: 0.02em; padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+}
+.tag-accent { background: var(--color-accent-800); color: var(--color-accent-100); }
+.tag-accent-2 { background: var(--color-accent-2-800); color: var(--color-accent-2-100); }
+.tag-neutral { background: var(--color-neutral-800); color: var(--color-neutral-100); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* — navigation — */
+.nav {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: none;
+}
+.nav-brand {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 18px; margin-right: auto;
+}
+.nav a { color: inherit; text-decoration: none; font-size: 14px; }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
+
+/* — tables — */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: var(--space-2); border-bottom: 1px solid transparent; /* keeps layout; the row paints the fading rule */
+}
+.table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid transparent;
+}
+/* Row rules as row-level strips so the end-fade spans the row, not each cell. */
+.table thead tr {
+  background: linear-gradient(to right,
+    transparent, var(--color-divider) 48px,
+    var(--color-divider) calc(100% - 48px), transparent) no-repeat bottom / 100% 1px;
+}
+.table tbody tr {
+  background: linear-gradient(to right,
+    transparent, color-mix(in srgb, var(--color-text) 8%, transparent) 48px,
+    color-mix(in srgb, var(--color-text) 8%, transparent) calc(100% - 48px), transparent) no-repeat bottom / 100% 1px;
+}
+.table tbody tr:hover {
+  /* the hover tint layers over the row rule, which keeps painting */
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-text) 4%, transparent),
+                    color-mix(in srgb, var(--color-text) 4%, transparent)) no-repeat 0 0 / 100% 100%,
+    linear-gradient(to right,
+      transparent, color-mix(in srgb, var(--color-text) 8%, transparent) 48px,
+      color-mix(in srgb, var(--color-text) 8%, transparent) calc(100% - 48px), transparent) no-repeat bottom / 100% 1px;
+}
+
+/* — dialog — */
+.dialog-backdrop {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+.dialog {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background: var(--color-surface); box-shadow: var(--shadow-lg);
+}
+.dialog-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 20px;
+}
+.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* ==========================================================================
+   Project yard. Layout and states from docs/design/v5/README.md. Dark only.
+   ========================================================================== */
+:root{
+  --color-error:oklch(0.74 0.13 25); --color-warn:oklch(0.8 0.1 80);
+  --color-rule:color-mix(in srgb,var(--color-text) 8%,transparent);
+}
+body{font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+*{scrollbar-width:thin;scrollbar-color:var(--color-neutral-700) transparent}
+a{transition:color .15s}
 a:hover{color:var(--color-accent-400)}
 button,select{font:inherit;color:inherit}
-:focus{outline:none}
-:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-::selection{background:color-mix(in srgb,var(--color-accent) 30%,transparent)}
-h1{font-family:var(--font-heading);font-weight:500;letter-spacing:-0.015em;line-height:1.12}
+select.input option{background:var(--color-surface)}
+h1{margin:0}
+p{margin:0}
 .head{font-family:var(--font-heading);font-weight:500}
 .muted{color:var(--color-neutral-500)}
 .faint{color:var(--color-neutral-600)}
@@ -40,26 +326,12 @@ h1{font-family:var(--font-heading);font-weight:500;letter-spacing:-0.015em;line-
 .warn{color:var(--color-warn)}
 .nostage{color:var(--color-accent-300)}
 .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-
-/* Nocturne components */
-.tag{display:inline-flex;align-items:center;font-size:11px;letter-spacing:.02em;padding:3px 10px;border-radius:6px;white-space:nowrap}
-.tag-neutral{background:var(--color-neutral-800);color:var(--color-neutral-100)}
-.tag-outline{border:1px solid var(--color-neutral-700);color:var(--color-neutral-400)}
+.mono{font-family:ui-monospace,monospace}
+.icon{display:inline-flex;flex:none}
+.icon svg{width:1em;height:1em;display:block}
 .tag.sm{font-size:10px;padding:1px 7px}
-.tag-outline.sm{padding:0 7px;border-color:var(--color-neutral-600)}
-.btn{cursor:pointer;font-size:14px;line-height:1.2;background:transparent;border:1px solid transparent;border-radius:var(--radius-md);padding:8px 14px;transition:background .15s}
-.btn-primary{color:var(--color-accent);border-color:var(--color-accent)}
-.btn-primary:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
-.input{min-height:30px;padding:3px 8px;font-size:12.5px;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-md);transition:border-color .15s}
-.input:hover{border-color:color-mix(in srgb,var(--color-text) 45%,transparent)}
-.input:focus-visible{border-color:var(--color-accent);outline-offset:0}
-select.input option{background:var(--color-surface)}
-.seg{display:inline-flex;overflow:hidden;border:1px solid var(--color-divider);border-radius:var(--radius-sm)}
-.seg button{background:none;border:0;padding:3px 9px;font-size:11.5px;cursor:pointer;transition:background .15s}
-.seg button+button{border-left:1px solid var(--color-divider)}
-.seg button[aria-pressed=true]{color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
-.seg button:not([aria-pressed=true]):hover{background:color-mix(in srgb,var(--color-text) 7%,transparent)}
-
+.tag-outline.quiet{border-color:var(--color-neutral-600);color:var(--color-neutral-400)}
+.tag-outline.sm{padding:0 7px}
 .dot{border-radius:50%;flex:none;display:inline-block}
 .focusdot{width:6px;height:6px;background:var(--color-accent);box-shadow:0 0 6px var(--color-accent)}
 /* Rules fade out at both ends: 48px on the page, 24px in compact, 32px inside panels. */
@@ -67,10 +339,12 @@ select.input option{background:var(--color-surface)}
 .rule:hover{background:linear-gradient(var(--color-surface),var(--color-surface)) no-repeat 0 0/100% 100%,linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom/100% 1px}
 .c-row.rule{background:linear-gradient(to right,transparent,var(--color-divider) 24px,var(--color-divider) calc(100% - 24px),transparent) no-repeat bottom/100% 1px}
 .c-row.rule:hover{background:linear-gradient(var(--color-surface),var(--color-surface)) no-repeat 0 0/100% 100%,linear-gradient(to right,transparent,var(--color-divider) 24px,var(--color-divider) calc(100% - 24px),transparent) no-repeat bottom/100% 1px}
-.panel .rule,.panel .rule:hover{background:linear-gradient(to right,transparent,var(--color-rule) 32px,var(--color-rule) calc(100% - 32px),transparent) no-repeat bottom/100% 1px}
+.prule{background:linear-gradient(to right,transparent,var(--color-rule) 32px,var(--color-rule) calc(100% - 32px),transparent) no-repeat bottom/100% 1px}
+.topfade{background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px}
 .dim{opacity:.5}
+.kicker{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)}
 
-/* stage pipeline: md (overview rows), sm (compact) */
+/* stage pipeline: md (overview rows), sm (compact), lg (detail) */
 .rail{display:flex;align-items:center}
 .rail .step{display:flex;align-items:center}
 .rail .step+.step{flex:1}
@@ -89,7 +363,7 @@ select.input option{background:var(--color-surface)}
 .conn.none{background:var(--color-accent-900)}
 
 .bars{display:flex;align-items:flex-end;gap:2px}
-.bars span{flex:1;border-radius:1px;background:var(--color-neutral-800)}
+.bars>span{flex:1;border-radius:1px;background:var(--color-neutral-800)}
 .bars .on{background:var(--color-neutral-500)}
 .bars .old.on{background:var(--color-neutral-700)}
 .bars .recent.on{background:var(--color-neutral-400)}
@@ -103,9 +377,8 @@ select.input option{background:var(--color-surface)}
 .sources .src{display:inline-flex;align-items:center;gap:6px}
 .sources .dot{width:6px;height:6px;background:var(--color-neutral-400)}
 .sources .dot.bad{background:var(--color-error)}
-.gear{display:inline-flex;align-items:center;gap:6px;color:var(--color-neutral-400);text-decoration:none;font-size:12px;padding:4px 6px;border-radius:var(--radius-md);transition:background .15s,color .15s}
-.gear:hover{color:var(--color-text);background:var(--color-surface)}
-.gear svg{width:16px;height:16px}
+.gear{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:var(--radius-md);color:var(--color-neutral-400);text-decoration:none;font-size:17px;transition:background .15s,color .15s}
+.gear:hover{background:var(--color-surface);color:var(--color-text)}
 .bannerwrap{padding:8px 24px 0}
 .banner{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:8px 12px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-sm);font-size:13px;max-width:1200px}
 .banner .rest{color:var(--color-neutral-400)}
@@ -130,6 +403,7 @@ select.input option{background:var(--color-surface)}
 .chip span{opacity:.55;font-size:11px}
 .chip[aria-pressed=true]{background:var(--color-accent-900);color:var(--color-accent-200);border-color:var(--color-accent-700)}
 .sort{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-500)}
+.sort .input{width:auto;min-height:30px;padding:3px 8px;font-size:12.5px}
 
 .list{padding:0 24px 48px;display:flex;flex-direction:column}
 .group{font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:16px 10px 4px;display:flex;align-items:center;gap:8px;color:var(--color-neutral-500)}
@@ -149,10 +423,10 @@ select.input option{background:var(--color-surface)}
 .row .stage{flex:0 0 180px;display:flex;flex-direction:column;gap:7px;padding-top:7px}
 .row .stage .lbl{font-size:12px;display:flex;justify-content:space-between;gap:8px;line-height:1.2}
 .row .stage .sub{color:var(--color-neutral-600);font-size:11px;white-space:nowrap}
-.row .spark{flex:0 0 90px;display:flex;flex-direction:column;gap:5px;padding-top:3px}
+.row .spark{flex:0 0 100px;display:flex;flex-direction:column;gap:5px;padding-top:3px}
 .row .spark .bars{height:22px}
-.row .spark .cap{font-size:11px;color:var(--color-neutral-500);line-height:1.2}
-.row .last{flex:1 1 190px;max-width:280px;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:3px;font-size:12px;line-height:1.35}
+.row .spark .cap{font-size:11px;color:var(--color-neutral-500);line-height:1.2;white-space:nowrap}
+.row .last{flex:1 1 210px;max-width:300px;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:3px;font-size:12px;line-height:1.35}
 .kv{display:flex;justify-content:space-between;gap:8px}
 .kv>:first-child{color:var(--color-neutral-500)}
 .kv>:last-child{color:var(--color-neutral-300)}
@@ -163,9 +437,11 @@ select.input option{background:var(--color-surface)}
 .empty{padding:56px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .empty .h{font-family:var(--font-heading);font-weight:500;font-size:17px}
 
-/* ---------------------------------------------------------------- compact (panel popup, ~420px) */
+/* ---------------------------------------------------------------- compact (≤560px wide) */
 .c-top{display:flex;align-items:center;gap:10px;padding:10px 12px 8px}
 .c-top .brand{font-size:14px;letter-spacing:0}
+.c-top .seg{border-radius:var(--radius-sm)}
+.c-top .seg-opt{padding:3px 9px;font-size:11.5px}
 .c-err{margin:0 12px 6px;padding:5px 9px;border-radius:var(--radius-sm);background:var(--color-surface);font-size:11.5px;color:var(--color-error)}
 .c-list{padding:0 6px 8px;display:flex;flex-direction:column}
 .c-list .group{font-size:10px;padding:8px 6px 3px;gap:6px}
@@ -185,21 +461,18 @@ select.input option{background:var(--color-surface)}
 .d-head{margin-top:20px;display:flex;flex-wrap:wrap;gap:14px 40px;align-items:flex-start}
 .d-id{flex:1 1 340px;min-width:0}
 .d-id .title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.d-id h1{font-size:30px;margin:0}
+.d-id h1{font-size:30px}
 .d-id .focusdot{width:8px;height:8px;box-shadow:0 0 8px var(--color-accent)}
 .d-id p{font-size:15px;color:var(--color-neutral-300);margin:8px 0;max-width:64ch;text-wrap:pretty}
 .d-id .links{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px}
 .d-id .links a{text-decoration:none}
-.stats{flex:0 1 480px;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 20px}
-.stats dt{font-size:11px;color:var(--color-neutral-500)}
+.stats{margin:0;display:grid;gap:14px 20px}
+.stats dt{font-size:11px;color:var(--color-neutral-500);white-space:nowrap}
 .stats dd{margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1;white-space:nowrap}
-/* Three independent rows: a long panel never stretches its neighbours. */
-.drows{margin-top:24px;display:flex;flex-direction:column;gap:16px}
+/* Independent rows: from 1100px each multi-panel row is three equal columns whose panels share one height. */
+.drows{margin-top:22px;display:flex;flex-direction:column;gap:16px}
 .drow{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
-@media (min-width:1100px){
-  .drow.a{grid-template-columns:minmax(0,4fr) minmax(0,3fr) minmax(0,3fr) minmax(0,3fr)}
-  .drow.c{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr)}
-}
+@media (min-width:1100px){.drow{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}}
 .panel{background:var(--color-surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .panel .ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .panel .ph .t{font-family:var(--font-heading);font-weight:500;font-size:15px}
@@ -210,7 +483,6 @@ select.input option{background:var(--color-surface)}
 .stagehead .big{font-family:var(--font-heading);font-weight:500;font-size:20px}
 .stagehead .why{font-size:12.5px;color:var(--color-neutral-500)}
 .stagehead .why.alt{color:var(--color-neutral-400)}
-.stagehead .mono{font-family:ui-monospace,monospace}
 .bigrail{position:relative;display:flex;padding-top:2px}
 .bigrail .line{position:absolute;left:calc(100%/12);right:calc(100%/12);top:8.5px;height:1px}
 .bigrail .s{flex:1;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:0}
@@ -219,10 +491,10 @@ select.input option{background:var(--color-surface)}
 .bigrail .lab{font-size:11.5px;color:var(--color-neutral-600);max-width:100%}
 .bigrail .lab.done{color:var(--color-neutral-400)}
 .bigrail .lab.now{color:var(--color-text)}
-.nextblock{padding-top:14px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px}
-.kicker{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px}
+.nextblock{padding-top:14px}
+.nextblock .kicker{margin-bottom:6px}
 .nextbig{font-size:17px;line-height:1.35;text-wrap:pretty}
-.activity .bars{height:64px}
+.activity .bars{flex:1;min-height:64px;max-height:140px}
 .axis{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--color-neutral-600);flex-wrap:wrap}
 .axis .mid{color:var(--color-neutral-400)}
 .repo dl{margin:0;display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 14px;font-size:13px}
@@ -230,45 +502,21 @@ select.input option{background:var(--color-surface)}
 .repo dd{margin:0;min-width:0}
 .repo dd a.plain{color:var(--color-text);text-decoration:none}
 .repo .sub{color:var(--color-neutral-500);font-size:12px}
-.lines{list-style:none;margin:0;padding:0 6px 0 0;display:flex;flex-direction:column;overflow-y:auto}
-.lines li{display:flex;gap:14px;align-items:baseline;padding:6px 0;font-size:13px;background:linear-gradient(to right,transparent,var(--color-rule) 32px,var(--color-rule) calc(100% - 32px),transparent) no-repeat bottom/100% 1px}
+.repo .file{font-size:12.5px}
+.scroll{max-height:372px;overflow-y:auto;padding-right:6px}
+.lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.lines li{display:flex;gap:14px;align-items:baseline;padding:6px 0;font-size:13px}
 .lines a{color:var(--color-text);text-decoration:none}
 .lines a:hover{color:var(--color-accent-400)}
-.lines .n{flex:none;margin-left:auto;color:var(--color-neutral-300);font-size:12px;white-space:nowrap}
-.lines .n .faint{margin-left:6px}
-.rel-latest{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.rel-latest .tagname{font-family:var(--font-heading);font-weight:500;font-size:17px;color:var(--color-text);text-decoration:none}
-.rel-latest .when{font-size:12px;color:var(--color-neutral-500)}
-.rel-latest .tot{margin-left:auto;font-size:12px;color:var(--color-neutral-300)}
-.assets{max-height:204px}
-.assets li{display:block}
-.assets .a{display:flex;gap:10px;align-items:baseline;min-width:0}
-.assets .a a{flex:1;min-width:0;display:flex;gap:8px;color:var(--color-accent)}
-.assets .a a:hover{color:var(--color-accent-400)}
-.assets .size{flex:none;font-size:11px;color:var(--color-neutral-600)}
-.assets .cnt{flex:none;width:44px;text-align:right;font-size:12.5px;color:var(--color-text)}
-.assets .track{margin:4px 54px 0 18px;height:3px;border-radius:2px;background:var(--color-neutral-800)}
-.assets .track i{display:block;height:3px;border-radius:2px;background:var(--color-accent-600)}
-.earlier{display:flex;flex-direction:column;gap:4px;font-size:12px}
-.earlier .kicker{margin-bottom:0}
-.earlier .rows{display:flex;flex-direction:column;gap:4px;max-height:148px;overflow-y:auto;padding-right:6px}
-.earlier .o{display:flex;gap:10px;align-items:baseline}
-.earlier .o a{text-decoration:none}
-.earlier .o .d{color:var(--color-neutral-600)}
-.earlier .o .n{margin-left:auto;color:var(--color-neutral-300)}
 .notes-cols{column-width:340px;column-gap:40px;column-rule:1px solid var(--color-divider);font-size:13.5px;line-height:1.55;color:var(--color-neutral-300)}
-/* Sections flow across columns; only paragraphs and bullets stay whole, and a heading never ends a column. */
-.notes-cols .sec{padding-bottom:16px}
-.notes-cols .st{break-after:avoid;font-family:var(--font-heading);font-weight:500;font-size:13.5px;color:var(--color-text);margin-bottom:5px;display:flex;align-items:center;gap:8px}
-.notes-cols .st::before{content:"";width:10px;height:1px;flex:none;background:var(--color-accent)}
-.notes-cols p{margin:0 0 7px;text-wrap:pretty;break-inside:avoid}
-.notes-cols ul{margin:0 0 7px;padding-left:18px}
-.notes-cols li{text-wrap:pretty;break-inside:avoid}
-.notes-cols li+li{margin-top:3px}
-.commits{max-height:372px}
+.notes-cols .nh{break-after:avoid;break-inside:avoid;font-family:var(--font-heading);font-weight:500;font-size:13.5px;color:var(--color-text);margin-bottom:5px;display:flex;align-items:center;gap:8px}
+.notes-cols .nh+.nh,.notes-cols :not(.nh)+.nh{padding-top:10px}
+.notes-cols .nh::before{content:"";width:10px;height:1px;flex:none;background:var(--color-accent)}
+.notes-cols p{margin:0 0 10px;break-inside:avoid;text-wrap:pretty}
+.notes-cols .li{break-inside:avoid;display:flex;gap:9px;margin:0 0 4px;padding-left:2px;text-wrap:pretty}
+.notes-cols .li::before{content:"•";flex:none;color:var(--color-neutral-500)}
 .commits .date{flex:none;width:78px;color:var(--color-neutral-500);font-size:12px}
 .commits a{flex:1}
-.issuelist{max-height:372px}
 .issuelist li{flex-wrap:wrap;gap:4px 12px;padding:7px 0}
 .issuelist a{flex:1 1 180px;min-width:0}
 .issuelist .labels{display:flex;gap:4px;flex-wrap:wrap}
@@ -277,46 +525,89 @@ select.input option{background:var(--color-surface)}
 .quiet{font-size:12px;color:var(--color-neutral-600)}
 .notfound{padding:48px 0}
 .notfound .h{font-family:var(--font-heading);font-weight:500;font-size:20px}
+.relbody{display:flex;flex-direction:column;gap:12px}
+.rel-latest{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rel-latest .tagname{font-family:var(--font-heading);font-weight:500;font-size:17px;color:var(--color-text);text-decoration:none}
+.rel-latest .when{font-size:12px;color:var(--color-neutral-500)}
+.rel-latest .tot{margin-left:auto;font-size:12px;color:var(--color-neutral-300)}
+.assets li{display:block}
+.assets .a{display:flex;gap:10px;align-items:baseline;min-width:0}
+.assets .a a{flex:1;min-width:0;display:flex;gap:8px;color:var(--color-accent)}
+.assets .a a:hover{color:var(--color-accent-400)}
+.assets .size{flex:none;font-size:11px;color:var(--color-neutral-600)}
+.assets .cnt{flex:none;width:44px;text-align:right;font-size:12.5px;color:var(--color-text)}
+.share{height:3px;border-radius:2px;background:var(--color-neutral-800)}
+.share i{display:block;height:3px;border-radius:2px;background:var(--color-accent-600)}
+.assets .share{margin:4px 54px 0 18px}
+.earlier{display:flex;flex-direction:column;gap:4px;font-size:12px}
+.earlier .o{display:flex;gap:10px;align-items:baseline}
+.earlier .o a{text-decoration:none}
+.earlier .o .d{color:var(--color-neutral-600)}
+.earlier .o .n{margin-left:auto;color:var(--color-neutral-300)}
 
-/* traffic: total and unique overlaid on one axis (unique ≤ total) */
-.tchart{display:flex;flex-direction:column;gap:6px;min-width:0}
-.tchart .hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:13px}
-.tchart .hd .k{font-weight:500}
-.legend{display:inline-flex;gap:12px;font-size:11px;color:var(--color-neutral-500)}
-.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-.tbars{display:flex;align-items:stretch;gap:1px;height:64px}
-.tbars .d{flex:1;position:relative;min-width:0;border-radius:2px}
-.tbars .d:hover{background:color-mix(in srgb,var(--color-text) 6%,transparent)}
-.tbars .d i{position:absolute;left:0;right:0;bottom:0;border-radius:2px 2px 0 0}
-.tbars .d.unknown i{background:repeating-linear-gradient(to right,var(--color-neutral-800) 0 2px,transparent 2px 4px)}
-.c-total{background:var(--color-neutral-600)}
-.c-unique{background:var(--color-accent-400)}
-.totals{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--color-neutral-400)}
-.totals b{font-weight:500;color:var(--color-text)}
-.toplist{max-height:168px}
+/* traffic */
+.seg.range{margin-left:auto;border-radius:var(--radius-sm)}
+.seg.range .seg-opt{padding:2px 9px;font-size:11.5px}
+.metric{display:flex;flex-direction:column;gap:6px;min-height:0}
+.metric.views{flex:1}
+.metric .mh{display:flex;align-items:baseline;gap:10px;font-size:12px}
+.metric .mh .k{color:var(--color-text);font-size:13px}
+.metric .mh .u{margin-left:auto;color:var(--color-neutral-300)}
+.metric .mh .tot{color:var(--color-neutral-500)}
+.tbars{display:flex;align-items:flex-end;flex:1;max-height:120px}
+.tbars>span{flex:1;position:relative;background:var(--color-neutral-700);border-radius:1px 1px 0 0}
+.tbars>span>i{position:absolute;left:0;right:0;bottom:0;background:var(--color-accent-500);border-radius:1px 1px 0 0}
+.tbars>span.unknown{background:var(--color-neutral-800)}
+.legend{display:inline-flex;gap:12px;color:var(--color-neutral-400)}
+.legend>span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:8px;height:8px;border-radius:1px}
+.sw-u{background:var(--color-accent-500)}
+.sw-t{background:var(--color-neutral-700)}
+.since{padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.since dl{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 20px}
+.since dt{font-size:11px;color:var(--color-neutral-500)}
+.since dd{margin:2px 0 0;display:flex;align-items:baseline;gap:8px}
+.since dd b{font-family:var(--font-heading);font-weight:500;font-size:20px;line-height:1.1}
+.since dd span{font-size:12px;color:var(--color-neutral-400)}
+.tl-head,.tl .r{display:grid;grid-template-columns:minmax(0,1fr) 56px 56px;gap:10px}
+.tl-head{font-size:11px;color:var(--color-neutral-500)}
+.tl-head>:not(:first-child),.tl .r>:not(:first-child){text-align:right}
+.tl li{display:block;padding:6px 0}
+.tl .r{align-items:baseline;font-size:13px}
+.tl .r .uq{color:var(--color-neutral-400)}
+.tl .r a{text-decoration:none;color:var(--color-accent);font-size:12.5px}
+.tl .share{margin:4px 132px 0 0}
+.tnote{margin:0;padding:2px 4px;font-size:12.5px;color:var(--color-neutral-500);display:flex;align-items:center;gap:8px}
+.tnote .icon{font-size:14px}
 
-/* settings */
-.settings{max-width:820px;padding:14px 24px 56px}
-.settings h1{font-size:30px;margin:20px 0 8px}
-.settings .intro{color:var(--color-neutral-300);font-size:15px;margin:0 0 18px;max-width:64ch;text-wrap:pretty}
-.settings .status{font-size:12.5px}
-.settings .status:empty{display:none}
-.srow{display:flex;align-items:center;gap:12px;padding:9px 0}
-.srow .nm{flex:1;min-width:0;display:flex;flex-direction:column}
-.srow .nm .nmline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.srow .nm .id{font-size:12px;color:var(--color-neutral-500)}
-.srow.off .nm{opacity:.5}
-.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--color-neutral-400);min-width:92px;justify-content:flex-end}
-.switch input{appearance:none;margin:0;width:34px;height:20px;border-radius:10px;background:var(--color-neutral-800);position:relative;cursor:pointer;flex:none;transition:background .15s}
-.switch input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--color-neutral-400);transition:transform .15s}
-.switch input:checked{background:var(--color-accent-700)}
-.switch input:checked::after{transform:translateX(14px);background:var(--color-accent-200)}
-.switch input:disabled{opacity:.5;cursor:wait}
+/* ---------------------------------------------------------------- settings */
+.settings{max-width:880px;padding:14px 24px 56px}
+.s-head{margin-top:20px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px}
+.s-head h1{font-size:30px;margin-right:auto}
+.savestate{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--color-neutral-500)}
+.savestate.ok{color:var(--color-neutral-300)}
+.savestate.failed{color:var(--color-error)}
+.s-intro{font-size:14px;color:var(--color-neutral-400);margin:8px 0 0;max-width:64ch;text-wrap:pretty}
+.s-alert{margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px 14px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-sm);font-size:13px}
+.s-alert .btn{margin-left:auto;min-height:30px;padding:4px 12px;font-size:12.5px}
+.s-repos{margin-top:18px;padding:16px 20px 8px;gap:0}
+.s-repos .ph{padding-bottom:8px;align-items:baseline}
+.lines .s-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:6px 14px;padding:10px 0}
+.s-row .nm{min-width:0}
+.s-row .nm .n{font-family:var(--font-heading);font-weight:500;font-size:14px;line-height:1.3}
+.s-row .nm .id{font-size:12px;color:var(--color-neutral-500)}
+.s-row.off .nm{opacity:.55}
+.s-row .tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.s-row .tags .tag{font-size:10.5px;padding:1px 8px}
+.switch{width:36px;height:20px;padding:0;border-radius:10px;cursor:pointer;position:relative;border:1px solid var(--color-neutral-700);background:var(--color-neutral-800);transition:background-color .15s,border-color .15s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--color-neutral-500);transition:left .15s,background-color .15s}
+.switch[aria-checked=true]{background:var(--color-accent-700);border-color:var(--color-accent-500)}
+.switch[aria-checked=true]::after{left:18px;background:var(--color-accent-200)}
 
 @media (max-width:560px){
   .detail,.settings{padding:10px 12px 32px}
-  .d-id h1,.settings h1{font-size:24px}
-  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .d-id h1,.s-head h1{font-size:24px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .panel{padding:14px}
 }
 </style>
@@ -328,12 +619,20 @@ let DATA=/*__DATA__*/null;
 
 // ---------------------------------------------------------------- helpers
 const STAGE_LABEL={idea:'Idea',scoping:'Scoping',design:'Design',building:'Building',testing:'Testing',live:'Live'};
-const STAGE_FILE='.project.toml';
+const FILE='.project.toml';
 const DAY=864e5;
 const COMPACT=matchMedia('(max-width:560px)');
-const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch{return null}};
-const ui={filter:ls('yard.filter')||'all',cat:ls('yard.cat')||'all',sort:ls('yard.sort')||'stage',cfilter:ls('yard.cfilter')||'all'};
-function setUi(k,v){ui[k]=v;ls('yard.'+k,v);render();}
+// Filters, sort and traffic range live in memory only.
+const ui={filter:'all',cat:'all',sort:'stage',cfilter:'all',range:'90'};
+function setUi(k,v){ui[k]=v;render();}
+
+// Phosphor icons (regular, MIT), inlined so the page stays self-contained. Constant markup, no data.
+const ICONS={
+  'gear-six':'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm109.94-52.79a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128,41.85,97.88,25a8,8,0,0,0-6.47-.6A112.1,112.1,0,0,0,54.73,45.15a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.62a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59L128,214.15,158.12,231a7.91,7.91,0,0,0,3.9,1,8.09,8.09,0,0,0,2.57-.42,112.1,112.1,0,0,0,36.68-20.73,8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21Zm-15,34.91-28.57,16.25a8,8,0,0,0-3,3c-.58,1-1.19,2.06-1.81,3.06a7.94,7.94,0,0,0-1.22,4.21l-.15,32.25a95.89,95.89,0,0,1-25.37,14.3L134,199.13a8,8,0,0,0-3.91-1h-.19c-1.21,0-2.43,0-3.64,0a8.08,8.08,0,0,0-4.1,1l-28.84,16.1A96,96,0,0,1,67.88,201l-.11-32.2a8,8,0,0,0-1.22-4.22c-.62-1-1.23-2-1.8-3.06a8.09,8.09,0,0,0-3-3.06l-28.6-16.29a90.49,90.49,0,0,1,0-28.26L61.67,97.63a8,8,0,0,0,3-3c.58-1,1.19-2.06,1.81-3.06a7.94,7.94,0,0,0,1.22-4.21l.15-32.25a95.89,95.89,0,0,1,25.37-14.3L122,56.87a8,8,0,0,0,4.1,1c1.21,0,2.43,0,3.64,0a8.08,8.08,0,0,0,4.1-1l28.84-16.1A96,96,0,0,1,188.12,55l.11,32.2a8,8,0,0,0,1.22,4.22c.62,1,1.23,2,1.8,3.06a8.09,8.09,0,0,0,3,3.06l28.6,16.29A90.49,90.49,0,0,1,222.9,142.12Z"/></svg>',
+  'check':'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>',
+  'chart-bar':'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z"/></svg>',
+};
+function icon(name){const s=document.createElement('span');s.className='icon';s.setAttribute('aria-hidden','true');s.innerHTML=ICONS[name];return s;}
 
 // Build DOM with text nodes only: commit messages, notes and issue titles are untrusted.
 function h(tag,attrs,...kids){
@@ -367,6 +666,7 @@ const when=d=>daysSince(d)<1?clock(d):isoDate(d)+' '+clock(d);
 const plural=(n,w)=>n+' '+w+(n===1?'':'s');
 const fmtN=n=>(n||0).toLocaleString('en-US');
 const sentence=s=>/[.!?]$/.test(s)?s:s+'.';
+const pct=(n,mx,min)=>Math.max(min,Math.round(n/Math.max(1,mx)*100))+'%';
 function bytes(n){
   if(n<1024)return n+' B';const u=['KB','MB','GB'];let i=-1;
   do{n/=1024;i++;}while(n>=1024&&i<u.length-1);
@@ -374,9 +674,28 @@ function bytes(n){
 }
 
 // ---------------------------------------------------------------- project model
+// Traffic in the handoff's three forms: null (not collected, e.g. private), 'unavailable'
+// (token can't read it, nothing stored), or an object built from the stored daily history.
+function trafficOf(p){
+  if(!p.trafficCollected)return null;
+  const t=p.traffic||{},dates=Object.keys(t.views||{}).sort();
+  const unavailable=t.status==='unavailable';
+  if(!dates.length)return unavailable?'unavailable':'pending';
+  const daily=[];
+  for(let d=new Date(dates[0]+'T00:00:00Z');;d=new Date(d.getTime()+DAY)){
+    const k=d.toISOString().slice(0,10),v=t.views[k],c=(t.clones||{})[k];
+    daily.push({date:k,known:!!(v||c),views:v?v.count:0,viewsUnique:v?v.uniques:0,clones:c?c.count:0,clonesUnique:c?c.uniques:0});
+    if(k>=dates[dates.length-1])break;
+  }
+  return {daily,since:dates[0],latest:dates[dates.length-1],fetchedAt:t.fetchedAt,unavailable,
+    views14:t.last14?t.last14.views:null,clones14:t.last14?t.last14.clones:null,
+    referrers:(t.referrers||[]).map(r=>({source:r.referrer,views:r.count,uniques:r.uniques})),
+    paths:(t.paths||[]).map(r=>({path:r.path,title:r.title,views:r.count,uniques:r.uniques}))};
+}
+
 function enrich(raw){
   // Defaults cover data saved by an older version, rendered before the first refresh.
-  const p={stars:0,forks:0,watchers:0,releases:[],releaseCount:0,downloads:0,traffic:null,trafficCollected:false,...raw};
+  const p={stars:0,forks:0,watchers:0,releases:[],releaseCount:0,downloads:0,traffic:null,trafficCollected:false,fork:false,...raw};
   const idx=DATA.stages.indexOf(p.stage);
   const hasStage=idx>=0, bad=!!p.stageError, noStage=!hasStage&&!bad;
   const last=p.lastCommit, lastDays=last?daysSince(last.date):null;
@@ -384,25 +703,26 @@ function enrich(raw){
   const stale=hasStage&&last&&p.stageUpdated&&daysSince(p.stageUpdated)>DATA.staleDays&&new Date(last.date)>new Date(p.stageUpdated);
   // One flag per row, first match wins (handoff order).
   let flag=null,flagClass='muted';
-  if(bad){flag='Invalid stage file';flagClass='error';}
-  else if(noStage){flag='No stage file';flagClass='nostage';}
+  if(bad){flag='Invalid project file';flagClass='error';}
+  else if(noStage){flag='No project file';flagClass='nostage';}
   else if(p.archived)flag='Archived';
   else if(p.paused)flag='Paused';
   else if(!last){flag='No commits yet';flagClass='warn';}
   else if(quiet){flag='Quiet · '+lastDays+'d';flagClass='warn';}
   else if(stale){flag='Stage may be out of date';flagClass='warn';}
-  const stageLabel=hasStage?STAGE_LABEL[p.stage]:noStage?'No stage file':'Invalid stage';
-  return {...p,idx,hasStage,bad,noStage,lastDays,quiet,stale,flag,flagClass,stageLabel,
+  const stageLabel=hasStage?STAGE_LABEL[p.stage]:noStage?'No project file':'Invalid file';
+  const t=trafficOf(p);
+  return {...p,idx,hasStage,bad,noStage,lastDays,quiet,stale,flag,flagClass,stageLabel,t,
     stageClass:hasStage?'':noStage?'nostage':'error',
     stageSub:hasStage?(p.stageUpdated?'changed '+ago(p.stageUpdated):''):noStage?'to do':'see file',
-    nextText:p.next||(noStage?'Set in the stage file':'No next step'),
+    nextText:p.next||(noStage?'Set in '+FILE:'No next step'),
     lastWarn:quiet||!last,
     dim:p.paused||p.archived,
     aria:p.name+', '+stageLabel+(flag?', '+flag:'')+', next: '+(p.next||'none'),
     href:'#/'+p.id};
 }
-// Hidden repos (settings screen) stay off the board; their detail pages still work.
-const projects=(withHidden=false)=>DATA.projects.filter(p=>withHidden||!p.hidden).map(enrich);
+// Hidden repos (Settings) are off the overview, compact panel, counts and detail routes.
+const projects=()=>DATA.projects.filter(p=>!p.hidden).map(enrich);
 
 function railSteps(p){
   return DATA.stages.map((s,i)=>{
@@ -416,20 +736,10 @@ function rail(p,size){
   return h('div',{class:'rail '+size,role:'img','aria-label':stageAria(p)},
     railSteps(p).map((s,i)=>h('span',{class:'step'},i?h('span',{class:'conn '+s.conn}):null,h('span',{class:'node '+s.st,title:s.label}))));
 }
-// Weekly commit bars, oldest first. The current week is accent; `recentFrom` brightens the
-// last weeks on the detail chart. null = not fetched yet.
-function bars(counts,height,opts={}){
-  const known=counts.filter(c=>c!=null),mx=Math.max(1,...known),n=counts.length;
-  return h('div',{class:'bars',role:'img','aria-label':opts.aria,style:'height:'+height+'px'},
-    counts.map((c,i)=>{
-      if(c==null)return h('span',{class:'unknown',style:'height:2px',title:opts.titles?opts.titles[i]+': not fetched yet':null});
-      const cls=[c?'on':'',i===n-1?'hot':'',opts.recentFrom!=null?(i>=opts.recentFrom?'recent':'old'):''].join(' ');
-      return h('span',{class:cls,style:'height:'+(c?Math.max(3,Math.round(c/mx*height)):2)+'px',title:opts.titles?plural(c,'commit')+', week of '+opts.titles[i]:null});
-    }));
-}
 
 // ---------------------------------------------------------------- overview
 const STRIP_FILTERS={all:()=>true,focus:p=>p.focus,paused:p=>p.paused,nostage:p=>p.noStage,invalid:p=>p.bad};
+const STRIP_LABEL={focus:'Focus',paused:'Paused',nostage:'No project file',invalid:'Invalid file'};
 const matchFilter=(p,f)=>f.startsWith('stage:')?p.stage===f.slice(6):(STRIP_FILTERS[f]||STRIP_FILTERS.all)(p);
 const catOf=p=>p.category||'Uncategorised';
 const matchCat=(p,c)=>c==='all'||catOf(p)===c;
@@ -440,23 +750,16 @@ const SORTS={
   quiet:(a,b)=>lastTime(a)-lastTime(b),
   name:(a,b)=>a.name.localeCompare(b.name),
 };
-const sorted=(list,key)=>list.sort(SORTS[key]);
 function groupsOf(list,filter){
   if(filter==='focus'||!list.some(p=>p.focus))return [{label:null,items:list}];
   return [{label:'Focus',cls:'focus',items:list.filter(p=>p.focus)},{label:'Everything else',items:list.filter(p=>!p.focus)}];
 }
-
-const GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
-function gear(){
-  const n=DATA.projects.filter(p=>p.hidden).length;
-  const a=h('a',{href:'#/settings',class:'gear',title:'Settings: show or hide repos','aria-label':'Settings'+(n?', '+n+' hidden':'')},n?plural(n,'hidden repo'):null);
-  a.insertAdjacentHTML('afterbegin',GEAR);  // constant markup, no data in it
-  return a;
-}
+const kindOf=s=>s.kind==='Organization'?'organization':'account';
 function sourcesLine(){
   return h('div',{class:'sources'},
-    DATA.sources.map(s=>h('span',{class:'src',title:s.error?s.error:'ok · '+plural(s.count,'repo')},h('span',{class:'dot'+(s.error?' bad':'')}),s.owner)),
-    h('span',{class:'faint'},'Refreshed '+clock(DATA.generatedAt)+' · every '+DATA.refreshMinutes+' min'));
+    DATA.sources.map(s=>h('span',{class:'src',title:kindOf(s)+' · '+(s.error?s.error:'ok · '+plural(s.count,'repo'))},h('span',{class:'dot'+(s.error?' bad':'')}),s.owner)),
+    h('span',{class:'faint'},'Refreshed '+clock(DATA.generatedAt)+' · every '+DATA.refreshMinutes+' min'),
+    h('a',{href:'#/settings',class:'gear','aria-label':'Settings',title:'Settings'},icon('gear-six')));
 }
 function banner(){
   const bad=DATA.sources.filter(s=>s.error);
@@ -476,7 +779,7 @@ function overview(){
   const strip=h('section',{class:'strip',role:'group','aria-label':'Summary and stage filter'},
     cell('all','projects','big'),cell('focus','Focus'),sep(),
     DATA.stages.map(s=>cell('stage:'+s,STAGE_LABEL[s])),sep(),
-    cell('paused','Paused'),cell('nostage','No stage file'),cell('invalid','Invalid stage'));
+    cell('paused','Paused'),cell('nostage','No project file'),cell('invalid','Invalid file'));
 
   const cats=[...new Set(all.map(catOf))].sort();
   const chip=(key,label)=>{const on=cat===key;
@@ -487,7 +790,7 @@ function overview(){
     h('div',{class:'chips',role:'group','aria-label':'Category'},chip('all','All categories'),sep(),cats.map(c=>chip(c,c))),
     h('label',{class:'sort'},'Sort',sel));
 
-  const list=sorted(all.filter(p=>matchFilter(p,filter)&&matchCat(p,cat)),sort);
+  const list=all.filter(p=>matchFilter(p,filter)&&matchCat(p,cat)).sort(SORTS[sort]);
   const main=h('main',{class:'list'});
   for(const g of groupsOf(list,filter)){
     if(!g.items.length)continue;
@@ -495,47 +798,48 @@ function overview(){
     main.append(...g.items.map(row));
   }
   if(!list.length){
-    const labels=[filter!=='all'?(filter.startsWith('stage:')?STAGE_LABEL[filter.slice(6)]:{focus:'Focus',paused:'Paused',nostage:'No stage file',invalid:'Invalid stage'}[filter]):null,cat!=='all'?cat:null].filter(Boolean);
+    const labels=[filter!=='all'?(filter.startsWith('stage:')?STAGE_LABEL[filter.slice(6)]:STRIP_LABEL[filter]):null,cat!=='all'?cat:null].filter(Boolean);
     main.append(h('div',{class:'empty'},h('div',{class:'h'},'No projects match'),
       h('div',{class:'muted',style:'font-size:13px'},'No project matches '+(labels.join(' in ')||'this filter')+'.'),
-      h('button',{type:'button',class:'btn btn-primary',onclick:()=>{ui.cat='all';ls('yard.cat','all');setUi('filter','all');}},'Show all projects')));
+      h('button',{type:'button',class:'btn btn-primary',onclick:()=>{ui.cat='all';setUi('filter','all');}},'Show all projects')));
   }
-  return [h('header',{class:'top'},h('div',{class:'brand'},'Project yard'),sourcesLine(),gear()),banner(),strip,controls,main];
+  return [h('header',{class:'top'},h('div',{class:'brand'},'Project yard'),sourcesLine()),banner(),strip,controls,main];
 }
 
+function sparkline(weeks){
+  const mx=Math.max(1,...weeks),total=weeks.reduce((a,b)=>a+b,0);
+  return h('div',{class:'spark'},
+    h('div',{class:'bars',role:'img','aria-label':total+' commits over the last 12 weeks'},
+      weeks.map((w,i)=>h('span',{class:w?'on'+(i===weeks.length-1?' hot':''):'',style:'height:'+(w?Math.max(3,Math.round(w/mx*22)):2)+'px'}))),
+    h('div',{class:'cap'},total+' commits · 12w'));
+}
 function row(p){
-  const sparkTotal=p.weekly.reduce((a,b)=>a+b,0);
+  const t14=p.t&&typeof p.t==='object'&&p.t.views14?p.t:null;
   return h('a',{href:p.href,class:'row rule'+(p.dim?' dim':''),'aria-label':p.aria},
     h('div',{class:'who'},
       h('div',{class:'title'},p.focus?h('span',{class:'dot focusdot',title:'Focus'}):null,h('span',{class:'name'},p.name),
         p.private?h('span',{class:'priv'},'private'):null,
         p.archived?h('span',{class:'tag tag-neutral sm'},'archived'):null,
-        p.paused?h('span',{class:'tag tag-outline sm'},'paused'):null),
+        p.paused?h('span',{class:'tag tag-outline quiet sm'},'paused'):null),
       p.summary?h('div',{class:'summary'},p.summary):null,
       h('div',{class:'meta'},p.category?h('span',null,p.category):null,p.flag?h('span',{class:p.flagClass},p.flag):null)),
     h('div',{class:'next'},h('div',{class:'k'},'Next'),h('div',{class:'v'+(p.next?'':' faint')},p.nextText)),
     h('div',{class:'stage'},rail(p,'md'),h('div',{class:'lbl'},h('span',{class:p.stageClass},p.stageLabel),h('span',{class:'sub'},p.stageSub))),
-    h('div',{class:'spark'},bars(p.weekly,22,{aria:sparkTotal+' commits over the last 12 weeks'}),h('div',{class:'cap'},sparkTotal+' commits · 12w')),
+    sparkline(p.weekly),
     h('div',{class:'last'},
       h('div',{class:'kv'},h('span',null,'Last commit'),h('span',{class:p.lastWarn?'warn':null},p.lastCommit?ago(p.lastCommit.date):'none')),
       h('div',{class:'ell',style:'color:var(--color-neutral-400)'},p.lastCommit?p.lastCommit.message:'No commits yet'),
       h('div',{class:'kv'},h('span',null,'Open issues'),h('span',null,p.openIssues)),
-      trafficKv(p)),
+      t14?h('div',{class:'kv',title:'Unique visitors and cloners, last 14 days'},h('span',null,'Unique · 14d'),
+        h('span',null,fmtN(t14.views14.uniques)+' views · '+fmtN(t14.clones14.uniques)+' clones')):null),
     h('div',{class:'issues'},h('div',{class:'muted'},p.issues.length?'Open issues':'No open issues'),
       p.issues.slice(0,3).map(i=>h('div',{class:'i'},h('span',{class:'ell',style:'color:var(--color-neutral-300)'},i.title),h('span',{class:'faint',style:'flex:none'},short(i.createdAt))))));
-}
-// Unique views and clones over GitHub's 14-day window, as of the last daily read.
-function trafficKv(p){
-  const t=p.traffic;
-  if(!p.trafficCollected||!t||!t.last14)return null;
-  return h('div',{class:'kv',title:'Unique visitors and cloners over the last 14 days (GitHub traffic)'},h('span',null,'Unique · 14d'),
-    h('span',null,t.last14.views.uniques+' views · '+t.last14.clones.uniques+' clones'));
 }
 
 // ---------------------------------------------------------------- compact
 function compact(){
   const all=projects(),f=ui.cfilter;
-  const list=sorted(all.filter(p=>f!=='focus'||p.focus),'stage');
+  const list=all.filter(p=>f!=='focus'||p.focus).sort(SORTS.stage);
   const bad=DATA.sources.filter(s=>s.error);
   const main=h('main',{class:'c-list'});
   for(const g of groupsOf(list,f)){
@@ -549,7 +853,8 @@ function compact(){
   }
   if(!list.length)main.append(h('div',{class:'empty',style:'padding:24px 6px'},h('div',{class:'muted'},f==='focus'?'No focus projects.':'No projects yet.')));
   const seg=h('div',{class:'seg',role:'group','aria-label':'Show'},
-    [['all','All'],['focus','Focus']].map(([k,l])=>h('button',{type:'button','aria-pressed':String(f===k),onclick:()=>setUi('cfilter',k)},l)));
+    [['all','All'],['focus','Focus']].map(([k,l])=>h('label',{class:'seg-opt'},
+      h('input',{type:'radio',name:'yard-cf',checked:f===k,onchange:()=>setUi('cfilter',k)}),l)));
   return [h('header',{class:'c-top'},h('div',{class:'brand'},'Project yard'),seg,h('span',{class:'faint',style:'font-size:11px'},clock(DATA.generatedAt))),
     bad.length?h('div',{class:'c-err',role:'status'},bad.map(s=>s.owner+': '+s.error.replace(/\.$/,'')+(s.fetchedAt?' · data from '+when(s.fetchedAt):'')).join(' · ')):null,
     main];
@@ -559,61 +864,76 @@ function compact(){
 const panel=(label,cls,...kids)=>h('section',{class:'panel'+(cls?' '+cls:''),'aria-label':label},...kids);
 const ph=(title,extra)=>h('div',{class:'ph'},h('span',{class:'t'},title),extra);
 const phc=text=>text==null?null:h('span',{class:'c'},text);
-function stat(label,value,cls){return h('div',null,h('dt',null,label),h('dd',{class:cls||null},value));}
 
 function detail(id){
-  const p=projects(true).find(p=>p.id.toLowerCase()===id.toLowerCase());
+  const p=projects().find(p=>p.id.toLowerCase()===id.toLowerCase());
   const back=h('a',{href:'#/',class:'back'},'← All projects');
-  if(!p)return [h('div',{class:'detail'},back,h('div',{class:'notfound'},h('div',{class:'h'},'No project at this address'),h('div',{class:'muted',style:'margin-top:6px;font-size:13px'},id+" isn't in any connected source.")))];
+  if(!p)return [h('div',{class:'detail'},back,h('div',{class:'notfound'},h('div',{class:'h'},'No project at this address'),
+    h('div',{class:'muted',style:'margin-top:6px;font-size:13px'},id+' isn’t on the board. It may be hidden in Settings.')))];
   document.title=p.name+' · Project yard';
-  const t=p.trafficCollected&&p.traffic&&p.traffic.last14?p.traffic.last14:null;
+  const t=p.t,tObj=t&&typeof t==='object'?t:null;
 
+  const stat=(label,value,cls)=>h('div',null,h('dt',null,label),h('dd',{class:cls||null},value));
+  const row1=[stat('Open issues',p.openIssues),stat('Commits · 12w',p.commits12w),
+    stat('Last commit',p.lastCommit?short(p.lastCommit.date):'—',p.lastWarn?'warn':null),stat('Stage changed',p.stageUpdated?short(p.stageUpdated):'—')];
+  const row2=[stat('Stars',fmtN(p.stars)),stat('Forks',fmtN(p.forks)),stat('Watchers',fmtN(p.watchers)),stat('Downloads',fmtN(p.downloads))];
+  if(t){  // collected for this repo (public, or private with include_private)
+    const has=tObj&&tObj.views14;
+    row1.push(stat('Views · 14d',has?fmtN(tObj.views14.uniques):'—',has?null:'faint'));
+    row2.push(stat('Clones · 14d',has?fmtN(tObj.clones14.uniques):'—',has?null:'faint'));
+  }
   const head=h('header',{class:'d-head'},
     h('div',{class:'d-id'+(p.dim?' dim':'')},
       h('div',{class:'title'},p.focus?h('span',{class:'dot focusdot',title:'Focus'}):null,h('h1',null,p.name),
         p.category?h('span',{class:'tag tag-neutral'},p.category):null,
-        h('span',{class:'tag tag-outline'},p.private?'private':'public'),
+        h('span',{class:'tag tag-outline quiet',style:'border-color:var(--color-neutral-700)'},p.private?'private':'public'),
         p.archived?h('span',{class:'tag tag-neutral'},'archived'):null,
-        p.paused?h('span',{class:'tag tag-outline',style:'border-color:var(--color-neutral-600)'},'paused'):null,
-        p.hidden?h('a',{class:'tag tag-outline',href:'#/settings',style:'text-decoration:none'},'hidden'):null),
+        p.paused?h('span',{class:'tag tag-outline quiet'},'paused'):null),
       p.summary?h('p',null,p.summary):null,
       h('div',{class:'links'},h('a',{href:p.url,target:'_blank',rel:'noopener'},p.id+' ↗'),p.flag?h('span',{class:p.flagClass},p.flag):null)),
-    h('dl',{class:'stats'},
-      stat('Open issues',p.openIssues),stat('Commits · 12w',p.commits12w),
-      stat('Last commit',p.lastCommit?short(p.lastCommit.date):'—',p.lastWarn?'warn':null),
-      stat('Stage changed',p.stageUpdated?short(p.stageUpdated):'—'),
-      stat('Stars',fmtN(p.stars)),stat('Forks',fmtN(p.forks)),stat('Watchers',fmtN(p.watchers)),
-      stat('Downloads',p.releaseCount?fmtN(p.downloads):'—'),
-      stat('Views · 14d',t?fmtN(t.views.uniques):'—'),stat('Clones · 14d',t?fmtN(t.clones.uniques):'—')));
+    h('dl',{class:'stats',style:'flex:0 1 '+(t?600:480)+'px;grid-template-columns:repeat('+row1.length+',minmax(0,1fr))'},row1,row2));
+
+  let trafficRow=null;
+  if(tObj)trafficRow=[tObj.unavailable?trafficNote('Traffic unavailable. The token can’t read traffic for this repo; showing what was collected before.'):null,
+    h('div',{class:'drow'},viewsPanel(tObj),topPanel(p,tObj,'referrers'),topPanel(p,tObj,'paths'))];
+  else if(t==='unavailable')trafficRow=trafficNote('Traffic unavailable. The token can’t read traffic for this repo.');
+  else if(t==='pending')trafficRow=trafficNote('Traffic is read once a day. It shows up after the next read.');
 
   return [h('div',{class:'detail'},back,head,h('div',{class:'drows'},
-    h('div',{class:'drow a'},stagePanel(p),activityPanel(p),repoPanel(p),releasesPanel(p)),
+    h('div',{class:'drow'},stagePanel(p),activityPanel(p),repoPanel(p)),
     notesPanel(p),
-    h('div',{class:'drow c'},commitsPanel(p),issuesPanel(p),trafficPanel(p))))];
+    trafficRow,
+    h('div',{class:'drow'},commitsPanel(p),issuesPanel(p),releasesPanel(p))))];
 }
+const trafficNote=text=>h('p',{class:'tnote',role:'note'},icon('chart-bar'),text);
 
 function stagePanel(p){
-  const pct=p.hasStage?p.idx/5*100:0;
+  const pc=p.hasStage?p.idx/5*100:0;
   return panel('Stage and next step','stagepanel',
     p.hasStage?h('div',{class:'stagehead'},h('span',{class:'big'},p.stageLabel),
         h('span',{class:'why'},'stage '+(p.idx+1)+' of 6'+(p.stageUpdated?' · changed '+ago(p.stageUpdated)+' ('+isoDate(p.stageUpdated)+')':'')))
-      :p.noStage?h('div',{class:'stagehead'},h('span',{class:'big nostage'},'No stage file'),
-        h('span',{class:'why alt'},"This repo has no "+STAGE_FILE+" yet, so it can't be placed on the pipeline."))
-      :h('div',{class:'stagehead'},h('span',{class:'big error'},'Stage file has an error'),h('span',{class:'why alt mono'},p.stageError)),
+      :p.noStage?h('div',{class:'stagehead'},h('span',{class:'big nostage'},'No project file'),
+        h('span',{class:'why alt'},'This repo has no '+FILE+' yet, so it can’t be placed on the pipeline.'))
+      :h('div',{class:'stagehead'},h('span',{class:'big error'},FILE+' has an error'),h('span',{class:'why alt mono'},p.stageError)),
     h('div',{class:'bigrail',role:'img','aria-label':stageAria(p)},
-      h('div',{class:'line','aria-hidden':'true',style:'background:'+(p.hasStage?'linear-gradient(to right,var(--color-neutral-500) '+pct+'%,var(--color-neutral-800) '+pct+'%)':p.bad?'var(--color-neutral-800)':'var(--color-accent-900)')}),
+      h('div',{class:'line','aria-hidden':'true',style:'background:'+(p.hasStage?'linear-gradient(to right,var(--color-neutral-500) '+pc+'%,var(--color-neutral-800) '+pc+'%)':p.bad?'var(--color-neutral-800)':'var(--color-accent-900)')}),
       railSteps(p).map(s=>h('div',{class:'s'},h('span',{class:'node '+s.st}),h('span',{class:'lab ell '+s.st},s.label)))),
-    h('div',{class:'nextblock'},h('div',{class:'kicker'},'Next step'),h('div',{class:'nextbig'+(p.next?'':' faint')},p.nextText)));
+    h('div',{class:'nextblock topfade'},h('div',{class:'kicker'},'Next step'),h('div',{class:'nextbig'+(p.next?'':' faint')},p.nextText)));
 }
 
 function activityPanel(p){
-  const y=p.year,start=new Date(y.start+'T00:00:00Z');
-  const titles=y.weeks.map((_,i)=>new Date(start.getTime()+i*7*DAY).toISOString().slice(0,10));
-  const total52=y.weeks.reduce((a,b)=>a+(b||0),0),missing=y.weeks.some(w=>w==null);
+  const y=p.year,start=new Date(y.start+'T00:00:00Z'),n=y.weeks.length;
+  const known=y.weeks.filter(w=>w!=null),mx=Math.max(1,...known);
+  const total52=known.reduce((a,b)=>a+b,0);
   return panel('Commit activity','activity',ph('Commit activity'),
-    bars(y.weeks,64,{aria:total52+' commits over 52 weeks',titles,recentFrom:y.weeks.length-12}),
+    h('div',{class:'bars',role:'img','aria-label':total52+' commits over 52 weeks'},y.weeks.map((w,i)=>{
+      const wk=new Date(start.getTime()+i*7*DAY).toISOString().slice(0,10);
+      if(w==null)return h('span',{class:'unknown',style:'height:2px',title:'week of '+wk+': not fetched yet'});
+      const cls=w?'on '+(i===n-1?'hot':i>=n-12?'recent':'old'):'';
+      return h('span',{class:cls,style:'height:'+(w?pct(w,mx,4):'2px'),title:plural(w,'commit')+', week of '+wk});
+    })),
     h('div',{class:'axis'},h('span',null,y.start.slice(0,7)),h('span',{class:'mid'},total52+' commits · 52w · '+p.commits12w+' in the last 12'),h('span',null,'now')),
-    missing?h('div',{class:'none'},'Older weeks are still being fetched; they fill in on a later refresh.'):null,
+    known.length<n?h('div',{class:'quiet'},'Older weeks are still being fetched; they fill in on a later refresh.'):null,
     !p.lastCommit?h('div',{class:'none'},'No commits yet.'):null);
 }
 
@@ -625,150 +945,173 @@ function repoPanel(p){
       h('dt',null,'Category'),h('dd',null,p.category||'—'),
       h('dt',null,'Last commit'),h('dd',null,p.lastCommit?[h('a',{href:p.lastCommit.url,target:'_blank',rel:'noopener',class:'plain'},p.lastCommit.message),
         h('div',{class:'sub'},isoDate(p.lastCommit.date)+' · '+ago(p.lastCommit.date))]:'—'),
-      h('dt',null,'Stage set'),h('dd',null,isoDate(p.stageUpdated))));
+      h('dt',null,'Project file'),h('dd',null,p.hasStageFile
+        ?h('a',{href:p.url+'/blob/HEAD/'+FILE,target:'_blank',rel:'noopener',class:'mono file'},FILE+' ↗'):h('span',{class:'faint'},'None'))));
 }
 
-function releasesPanel(p){
-  const [latest,...older]=p.releases;
-  const header=ph('Releases',phc(p.releaseCount?fmtN(p.downloads)+' downloads all time':null));
-  if(!latest)return panel('Releases',null,header,h('div',{class:'none'},'No releases yet.'));
-  // Releases saved by v0.3 have no asset list; they still show the latest tag and its total.
-  const assets=latest.assets||[],top=Math.max(1,...assets.map(a=>a.downloads));
-  return panel('Releases',null,header,
-    h('div',{class:'rel-latest'},
-      h('a',{class:'tagname',href:latest.url,target:'_blank',rel:'noopener',title:latest.name},latest.tag),
-      latest.prerelease?h('span',{class:'tag tag-outline sm'},'pre-release'):null,
-      h('span',{class:'when'},isoDate(latest.publishedAt)+' · '+ago(latest.publishedAt)),
-      h('span',{class:'tot'},plural(latest.downloads,'download'))),
-    assets.length?h('ul',{class:'lines assets'},assets.map(a=>h('li',null,
-      h('div',{class:'a'},h('a',{href:a.url||latest.url},h('span',{'aria-hidden':'true',style:'flex:none'},'↓'),h('span',{class:'ell'},a.name)),
-        h('span',{class:'size'},bytes(a.size)),h('span',{class:'cnt'},fmtN(a.downloads))),
-      h('div',{class:'track','aria-hidden':'true'},h('i',{style:'width:'+Math.round(a.downloads/top*100)+'%'}))))):null,
-    older.length?h('div',{class:'earlier'},h('span',{class:'kicker'},'Earlier'),h('div',{class:'rows'},older.map(r=>h('div',{class:'o'},
-      h('a',{href:r.url,target:'_blank',rel:'noopener'},r.tag),h('span',{class:'d'},isoDate(r.publishedAt)),h('span',{class:'n'},fmtN(r.downloads)))))):null,
-    p.releaseCount>p.releases.length?h('div',{class:'quiet'},'Counts the newest '+p.releases.length+' of '+p.releaseCount+' releases.'):null);
-}
-
-// Notes are markdown-lite: "## " starts a section, "- " a bullet, any other line a paragraph.
-function parseNotes(txt){
-  const secs=[];let cur=null,list=null;
-  const sec=t=>{cur={title:t,blocks:[]};secs.push(cur);list=null;};
+// Notes: "## " heading, "- " bullet, other lines paragraphs. One flat list of blocks so the
+// columns can break between any two of them; paragraphs and bullets stay whole.
+function noteBlocks(txt){
+  const out=[];
   for(const raw of (txt||'').split('\n')){
-    const l=raw.trim();
-    if(l.startsWith('## ')){sec(l.slice(3));continue;}
-    if(!cur)sec('');
-    if(!l){list=null;continue;}
-    if(l.startsWith('- ')){if(!list){list={items:[]};cur.blocks.push(list);}list.items.push(l.slice(2));continue;}
-    list=null;cur.blocks.push({text:l});
+    const l=raw.trim();if(!l)continue;
+    if(l.startsWith('## '))out.push({kind:'h',text:l.slice(3)});
+    else if(l.startsWith('- '))out.push({kind:'li',text:l.slice(2)});
+    else out.push({kind:'p',text:l});
   }
-  return secs.filter(s=>s.blocks.length);
+  return out;
 }
 function notesPanel(p){
-  const secs=parseNotes(p.notes),titled=secs.filter(s=>s.title).length;
-  return panel('Notes',null,ph('Notes',phc((titled>1?titled+' sections · ':'')+STAGE_FILE)),
-    secs.length?h('div',{class:'notes-cols'},secs.map(s=>h('div',{class:'sec'},
-      s.title?h('div',{class:'st'},s.title):null,
-      s.blocks.map(b=>b.items?h('ul',null,b.items.map(i=>h('li',null,i))):h('p',null,b.text)))))
-    :h('div',{class:'none'},p.hasStage?'No notes in the stage file.':'Notes come from the stage file.'));
+  const blocks=noteBlocks(p.notes),heads=blocks.filter(b=>b.kind==='h').length,paras=blocks.filter(b=>b.kind==='p').length;
+  const meta=(heads>1?heads+' sections · ':paras>3?paras+' paragraphs · ':'')+FILE;
+  return panel('Notes',null,ph('Notes',phc(meta)),
+    blocks.length?h('div',{class:'notes-cols'},blocks.map(b=>b.kind==='h'?h('div',{class:'nh'},b.text):b.kind==='li'?h('div',{class:'li'},b.text):h('p',null,b.text)))
+    :h('div',{class:'none'},p.noStage?'Notes come from '+FILE+'.':'No notes in '+FILE+'.'));
+}
+
+// Ranges the stored history covers: 14d always, 90d past 14 days, All past 90. Over 120
+// days the bars are weekly sums. The 14d unique figures are GitHub's own window counts;
+// longer ranges add up daily uniques, which overlap, so they're marked approximate.
+function viewsPanel(t){
+  const n=t.daily.length,avail=[['14','14d',14]];
+  if(n>14)avail.push(['90','90d',Math.min(90,n)]);
+  if(n>90)avail.push(['all','All',n]);
+  const cur=avail.find(a=>a[0]===ui.range)||avail[avail.length-1];
+  let win=t.daily.slice(-cur[2]).map(d=>({...d,label:d.date})),bucket='daily';
+  if(win.length>120){
+    const b=[];
+    for(let i=win.length;i>0;i-=7){
+      const ch=win.slice(Math.max(0,i-7),i),sum=k=>ch.reduce((a,x)=>a+x[k],0);
+      b.unshift({views:sum('views'),viewsUnique:sum('viewsUnique'),clones:sum('clones'),clonesUnique:sum('clonesUnique'),known:ch.some(x=>x.known),label:'week of '+ch[0].date});
+    }
+    win=b;bucket='weekly';
+  }
+  const exact=cur[0]==='14'&&t.views14;
+  const metric=(label,k,ku,cls,minH,api)=>{
+    const mx=Math.max(1,...win.map(x=>x[k]));
+    const total=exact?api.count:win.reduce((a,x)=>a+x[k],0),uniq=exact?api.uniques:win.reduce((a,x)=>a+x[ku],0);
+    return h('div',{class:'metric '+cls},
+      h('div',{class:'mh'},h('span',{class:'k'},label),h('span',{class:'u'},(exact?'':'≈')+fmtN(uniq)+' unique'),h('span',{class:'tot'},fmtN(total)+' total')),
+      h('div',{class:'tbars',role:'img','aria-label':label+', '+win.length+' '+(bucket==='weekly'?'weeks':'days')+', '+fmtN(total)+' total',style:'min-height:'+minH+'px;gap:'+(win.length>60?1:2)+'px'},
+        win.map(x=>!x.known?h('span',{class:'unknown',style:'height:1px',title:x.label+': not tracked'})
+          :h('span',{style:'height:'+(x[k]?pct(x[k],mx,3):'1px'),title:x.label+': '+fmtN(x[k])+' '+label.toLowerCase()+', '+fmtN(x[ku])+' unique'},
+            h('i',{style:'height:'+(x[k]?Math.round(x[ku]/x[k]*100):0)+'%'})))));
+  };
+  const sum=k=>t.daily.reduce((a,x)=>a+x[k],0);
+  return panel('Views and clones',null,
+    h('div',{class:'ph'},h('span',{class:'t'},'Views & clones'),
+      h('div',{class:'seg range',role:'group','aria-label':'Range'},avail.map(([k,l])=>h('label',{class:'seg-opt'},
+        h('input',{type:'radio',name:'yard-tr',checked:k===cur[0],onchange:()=>setUi('range',k)}),l)))),
+    metric('Views','views','viewsUnique','views',72,t.views14),
+    metric('Clones','clones','clonesUnique','clones',40,t.clones14),
+    h('div',{class:'axis'},h('span',null,win.length?win[0].label.replace('week of ',''):''),
+      h('span',{class:'legend'},h('span',null,h('i',{class:'sw-u'}),'unique'),h('span',null,h('i',{class:'sw-t'}),'total'),h('span',{class:'muted'},bucket)),
+      h('span',null,t.latest)),
+    h('div',{class:'since topfade'},h('div',{class:'kicker'},'Since tracking began · '+t.since),
+      h('dl',null,
+        h('div',null,h('dt',null,'Views'),h('dd',null,h('b',null,fmtN(sum('views'))),h('span',{title:'Daily uniques added up; someone who visits on two days counts twice'},'≈'+fmtN(sum('viewsUnique'))+' unique'))),
+        h('div',null,h('dt',null,'Clones'),h('dd',null,h('b',null,fmtN(sum('clones'))),h('span',{title:'Daily uniques added up; someone who clones on two days counts twice'},'≈'+fmtN(sum('clonesUnique'))+' unique'))))));
+}
+function topPanel(p,t,kind){
+  const refs=kind==='referrers',rows=refs?t.referrers:t.paths,mx=Math.max(1,...rows.map(r=>r.views));
+  const origin=p.url.startsWith('http')?new URL(p.url).origin:'https://github.com',prefix='/'+p.id;
+  return panel(refs?'Top referrers':'Popular pages',null,ph(refs?'Top referrers':'Popular pages',phc('last 14 days')),
+    rows.length?[h('div',{class:'tl-head'},h('span',null,refs?'Source':'Path'),h('span',null,'Views'),h('span',null,'Unique')),
+      h('ul',{class:'lines tl scroll'},rows.map(r=>h('li',{class:'prule'},
+        h('div',{class:'r'},refs?h('span',{class:'ell'},r.source)
+          :h('a',{href:origin+r.path,target:'_blank',rel:'noopener',class:'ell mono',title:r.path+(r.title?' · '+r.title:'')},r.path.startsWith(prefix)?(r.path.slice(prefix.length)||'/'):r.path),
+          h('span',null,fmtN(r.views)),h('span',{class:'uq'},fmtN(r.uniques))),
+        h('div',{class:'share','aria-hidden':'true'},h('i',{style:'width:'+pct(r.views,mx,2)})))))]
+    :h('div',{class:'none'},refs?'No referrers in the last 14 days.':'No page views in the last 14 days.'));
 }
 
 function commitsPanel(p){
   return panel('Recent commits',null,ph('Recent commits',phc(p.commits.length?'last '+p.commits.length:null)),
-    p.commits.length?h('ol',{class:'lines commits'},p.commits.map(c=>h('li',null,h('span',{class:'date'},isoDate(c.date)),h('a',{href:c.url,target:'_blank',rel:'noopener',class:'ell',title:c.message},c.message))))
+    p.commits.length?h('ol',{class:'lines commits scroll'},p.commits.map(c=>h('li',{class:'prule'},h('span',{class:'date'},isoDate(c.date)),h('a',{href:c.url,target:'_blank',rel:'noopener',class:'ell',title:c.message},c.message))))
       :h('div',{class:'none'},'Nothing pushed yet.'));
 }
 
 function issuesPanel(p){
   const more=p.openIssues-p.issues.length;
   return panel('Open issues',null,ph('Open issues',phc(p.openIssues+' open')),
-    p.issues.length?h('ul',{class:'lines issuelist'},p.issues.map(i=>h('li',null,
+    p.issues.length?h('ul',{class:'lines issuelist scroll'},p.issues.map(i=>h('li',{class:'prule'},
         h('a',{href:i.url,target:'_blank',rel:'noopener'},i.title),
         i.labels.length?h('span',{class:'labels'},i.labels.map(l=>h('span',{class:'tag tag-neutral sm'},l))):null,
         h('span',{class:'age'},short(i.createdAt))))):h('div',{class:'none'},'No open issues.'),
     more>0?h('a',{class:'more',href:p.url+'/issues',target:'_blank',rel:'noopener'},plural(more,'more issue')+' on GitHub ↗'):null);
 }
 
-const TRAFFIC_CHART_DAYS=90;
-function trafficPanel(p){
-  const t=p.traffic;
-  if(!p.trafficCollected)return panel('Traffic',null,ph('Traffic'),h('div',{class:'quiet'},"Traffic isn't collected for private repos. Set include_private = true under [traffic] in config.toml to include them."));
-  const days=t?Object.keys(t.views).sort():[];
-  if(!days.length)return panel('Traffic',null,ph('Traffic'),h('div',{class:'quiet'},t&&t.status==='unavailable'
-    ?'Traffic unavailable: the token needs the Administration: Read permission on this repo.'
-    :'Traffic is read once a day. It shows up after the next refresh.'));
-  // From the first tracked day (at most 90 back) to the latest day GitHub has reported, which
-  // trails today by a day or two. Days never returned by a read stay unknown.
-  const first=days[0],latest=days[days.length-1];
-  const from=new Date(Math.max(Date.parse(first),Date.parse(latest)-(TRAFFIC_CHART_DAYS-1)*DAY));
-  const span=[];for(let d=from;d.toISOString().slice(0,10)<=latest;d=new Date(d.getTime()+DAY))span.push(d.toISOString().slice(0,10));
-  const sum=(m,k)=>Object.values(t[m]).reduce((a,d)=>a+d[k],0);
-  return panel('Traffic',null,ph('Traffic',phc('read '+ago(t.fetchedAt))),
-    t.status==='unavailable'?h('div',{class:'quiet'},'Traffic unavailable since the last read (the token needs Administration: Read). Showing what was collected before.'):null,
-    trafficChart('Views',t.views,span,'view'),trafficChart('Clones',t.clones,span,'clone'),
-    h('div',{class:'totals'},h('span',null,'Since '+first+':'),
-      h('span',null,h('b',null,fmtN(sum('views','count'))),' views'),
-      h('span',null,h('b',null,fmtN(sum('clones','count'))),' clones'),
-      h('span',{class:'faint',title:'Someone who visits on two days counts twice'},'daily uniques summed: '+fmtN(sum('views','uniques'))+' views · '+fmtN(sum('clones','uniques'))+' clones')),
-    topList(p,t,'referrers'),topList(p,t,'paths'));
-}
-function trafficChart(label,byDay,span,unit){
-  const vals=span.map(d=>byDay[d]),mx=Math.max(1,...vals.filter(Boolean).map(v=>v.count));
-  const last14=span.slice(-14).reduce((a,d)=>a+(byDay[d]?byDay[d].count:0),0);
-  return h('div',{class:'tchart'},
-    h('div',{class:'hd'},h('span',{class:'k'},label),
-      h('span',{class:'legend'},h('span',null,h('i',{class:'c-total'}),'Total'),h('span',null,h('i',{class:'c-unique'}),'Unique'))),
-    h('div',{class:'tbars',role:'img','aria-label':label+' per day, '+span[0]+' to '+span[span.length-1]+'. '+last14+' in the last 14 days.'},
-      span.map((d,i)=>{const v=vals[i];
-        if(!v)return h('span',{class:'d unknown',title:d+': not tracked'},h('i',{style:'height:2px'}));
-        const ht=n=>(n?Math.max(2,Math.round(n/mx*64)):0)+'px';
-        return h('span',{class:'d',title:d+': '+plural(v.count,unit)+', '+v.uniques+' unique'},
-          h('i',{class:'c-total',style:'height:'+ht(v.count)}),h('i',{class:'c-unique',style:'height:'+ht(v.uniques)}));
-      })),
-    h('div',{class:'axis'},h('span',null,span[0]),h('span',null,'peak '+mx+'/day'),h('span',null,span[span.length-1])));
-}
-function topList(p,t,kind){
-  const title=kind==='referrers'?'Top referrers · 14d':'Popular pages · 14d';
-  const items=t[kind]||[],origin=p.url.startsWith('http')?new URL(p.url).origin:'';
-  return h('div',null,h('div',{class:'kicker'},title),
-    items.length?h('ul',{class:'lines toplist'},items.map(r=>h('li',null,
-      kind==='referrers'?h('span',{class:'ell'},r.referrer)
-        :h('a',{href:origin+r.path,target:'_blank',rel:'noopener',class:'ell',title:r.title},r.path.replace('/'+p.id,'')||'/'),
-      h('span',{class:'n'},r.count,h('span',{class:'faint'},r.uniques+' unique')))))
-    :h('div',{class:'none'},kind==='referrers'?'No referrers in the last 14 days.':'No page views in the last 14 days.'));
+function releasesPanel(p){
+  const [latest,...older]=p.releases;
+  const header=ph('Releases',phc(fmtN(p.downloads)+' downloads all time'));
+  if(!latest)return panel('Releases',null,header,h('div',{class:'none'},'No releases yet.'));
+  // Releases saved by v0.3 have no asset list; they still show the latest tag and its total.
+  const assets=latest.assets||[],top=Math.max(1,...assets.map(a=>a.downloads));
+  return panel('Releases',null,header,h('div',{class:'relbody scroll'},
+    h('div',{class:'rel-latest'},
+      h('a',{class:'tagname',href:latest.url,target:'_blank',rel:'noopener',title:latest.name},latest.tag),
+      latest.prerelease?h('span',{class:'tag tag-outline quiet sm'},'pre-release'):null,
+      h('span',{class:'when'},isoDate(latest.publishedAt)+' · '+ago(latest.publishedAt)),
+      h('span',{class:'tot'},fmtN(latest.downloads)+' downloads')),
+    assets.length?h('ul',{class:'lines assets'},assets.map(a=>h('li',{class:'prule'},
+      h('div',{class:'a'},h('a',{href:a.url||latest.url},h('span',{'aria-hidden':'true',style:'flex:none'},'↓'),h('span',{class:'ell'},a.name)),
+        h('span',{class:'size'},bytes(a.size)),h('span',{class:'cnt'},fmtN(a.downloads))),
+      h('div',{class:'share','aria-hidden':'true'},h('i',{style:'width:'+pct(a.downloads,top,2)}))))):null,
+    older.length?h('div',{class:'earlier'},h('span',{class:'kicker'},'Earlier'),older.map(r=>h('div',{class:'o'},
+      h('a',{href:r.url,target:'_blank',rel:'noopener'},r.tag),h('span',{class:'d'},isoDate(r.publishedAt)),h('span',{class:'n'},fmtN(r.downloads))))):null,
+    p.releaseCount>p.releases.length?h('div',{class:'quiet'},'Counts the newest '+p.releases.length+' of '+p.releaseCount+' releases.'):null));
 }
 
 // ---------------------------------------------------------------- settings
-let saving=false,saveMsg=null;
+// Toggling applies to the board at once, then saves; a failed save reverts the toggle.
+const save={state:'idle',at:null,fail:null};
+const isNew=p=>p.firstSeen&&DATA.seenSince&&p.firstSeen>DATA.seenSince&&daysSince(p.firstSeen)<=7;
 function settings(){
   document.title='Settings · Project yard';
-  const list=[...DATA.projects].sort((a,b)=>a.id.localeCompare(b.id));
-  const status=h('div',{class:'status',role:'status'},saveMsg?h('span',{class:saveMsg.err?'error':'muted'},saveMsg.text):null);
-  const rows=list.map(p=>h('div',{class:'srow rule'+(p.hidden?' off':'')},
-    h('div',{class:'nm'},h('span',{class:'nmline'},h('span',{class:'head'},p.name),p.private?h('span',{class:'faint',style:'font-size:10.5px;letter-spacing:.04em'},'private'):null,
-        p.archived?h('span',{class:'tag tag-neutral sm'},'archived'):null),
-      h('span',{class:'id'},p.id)),
-    h('label',{class:'switch'},p.hidden?'Hidden':'Shown',
-      h('input',{type:'checkbox',role:'switch',checked:!p.hidden,disabled:saving,'aria-label':'Show '+p.id+' on the board',
-        onchange:e=>saveHidden(p.id,!e.target.checked)}))));
+  const list=[...DATA.projects].sort((a,b)=>(a.name||a.repo).localeCompare(b.name||b.repo));
+  const hiddenN=list.filter(p=>p.hidden).length;
+  const status={idle:'Changes save automatically',saving:'Saving…',saved:'Saved · '+(save.at?clock(save.at):''),failed:'Not saved'}[save.state];
+  const owners=DATA.sources.map(s=>s.owner).join(' and ');
   return [h('div',{class:'settings'},h('a',{href:'#/',class:'back'},'← All projects'),
-    h('h1',null,'Settings'),
-    h('p',{class:'intro'},'Every repo the collector finds. Hidden repos drop off the board but stay listed here. New repos are shown. Repos that config.toml leaves out (its exclude list, plus archived repos and forks unless it includes them) never appear here.'),
-    panel('Repos',null,ph('Show on the board',phc(plural(list.filter(p=>p.hidden).length,'hidden repo'))),status,
-      list.length?h('div',null,rows):h('div',{class:'none'},'No repos yet. They appear after the first refresh.')))];
+    h('header',{class:'s-head'},h('h1',null,'Settings'),
+      h('span',{class:'savestate'+(save.state==='saved'?' ok':save.state==='failed'?' failed':''),role:'status','aria-live':'polite'},save.state==='saved'?icon('check'):null,status)),
+    h('p',{class:'s-intro'},'Every repo the collector finds for '+owners+'. Hidden repos leave the board and the panel straight away and stay listed here so you can bring them back. New repos are shown by default.'),
+    save.state==='failed'&&save.fail?h('div',{class:'s-alert',role:'alert'},
+      h('span',{class:'error'},'Couldn’t save: '+save.fail.text+'.'),h('span',{class:'muted',style:'color:var(--color-neutral-400)'},'Nothing was changed.'),
+      h('button',{type:'button',class:'btn btn-secondary',onclick:()=>toggleHidden(save.fail.id,save.fail.hide)},'Try again')):null,
+    panel('Repositories','s-repos',
+      h('div',{class:'ph'},h('span',{class:'t'},'Repositories'),phc((list.length-hiddenN)+' shown · '+hiddenN+' hidden')),
+      list.length?h('ul',{class:'lines'},list.map(p=>{
+        const tags=[];
+        if(p.hidden)tags.push(['hidden','tag-outline']);
+        if(p.archived)tags.push(['archived','tag-neutral']);
+        if(p.fork)tags.push(['fork','tag-neutral']);
+        if(isNew(p))tags.push(['new','tag-accent']);
+        if(!tags.length)tags.push(['shown','tag-neutral']);
+        return h('li',{class:'s-row prule'+(p.hidden?' off':'')},
+          h('button',{type:'button',class:'switch',role:'switch','aria-checked':String(!p.hidden),'aria-label':(p.hidden?'Show ':'Hide ')+p.name,
+            onclick:()=>toggleHidden(p.id,!p.hidden)}),
+          h('div',{class:'nm'},h('div',{class:'n ell'},p.name),h('div',{class:'id ell'},p.id)),
+          h('div',{class:'tags'},tags.map(([l,c])=>h('span',{class:'tag '+c},l))));
+      })):h('div',{class:'none'},'No repos yet. They appear after the first refresh.')))];
 }
-async function saveHidden(id,hide){
-  const hidden=new Set(DATA.projects.filter(p=>p.hidden).map(p=>p.id));
-  hide?hidden.add(id):hidden.delete(id);
-  saving=true;saveMsg=null;render();
+async function toggleHidden(id,hide){
+  const p=DATA.projects.find(x=>x.id===id);if(!p)return;
+  p.hidden=hide;save.state='saving';save.fail=null;render();
   try{
-    const r=await fetch('api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hidden:[...hidden]})});
+    const r=await fetch('api/settings',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({hidden:DATA.projects.filter(x=>x.hidden).map(x=>x.id)})});
     const body=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(body.error||('HTTP '+r.status));
     const saved=new Set(body.hidden.map(s=>s.toLowerCase()));
-    for(const p of DATA.projects)p.hidden=saved.has(p.id.toLowerCase());
-    saveMsg={text:(hide?'Hid ':'Showing ')+id+'.'};
-  }catch(e){saveMsg={err:true,text:"Couldn't save: "+e.message};}
-  saving=false;render();
+    for(const x of DATA.projects)x.hidden=saved.has(x.id.toLowerCase());
+    save.state='saved';save.at=new Date();
+  }catch(e){
+    p.hidden=!hide;
+    save.state='failed';save.fail={id,hide,text:(hide?'hiding ':'showing ')+p.name};
+    console.warn('settings save failed:',e.message);
+  }
+  render();
 }
 
 // ---------------------------------------------------------------- routing + refresh
@@ -785,7 +1128,7 @@ render();
 
 // The server rewrites data.json every refresh; pick it up without reloading the page.
 setInterval(async()=>{
-  if(document.visibilityState!=='visible'||saving)return;
+  if(document.visibilityState!=='visible'||save.state==='saving')return;
   try{const r=await fetch('data.json',{cache:'no-store'});if(r.ok){DATA=await r.json();render();}}catch{}
 },5*60*1000);
 </script>

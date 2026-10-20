@@ -1,7 +1,7 @@
 # Copy to config.toml and edit.
 
 refresh_minutes = 15   # how often to poll GitHub
-stale_days = 30        # when "last commit" and "stage set" turn amber
+stale_days = 30        # when "last commit" and "stage changed" turn amber
 
 # One [[sources]] block per GitHub user or organization.
 # Each gets its own token, because a fine-grained token belongs to exactly one account or org.

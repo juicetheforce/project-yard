@@ -15,10 +15,25 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   have a single resource owner). Optional `api_url` per source for GHES.
 - [decided] Standard-library Python, one container, static page regenerated each poll.
 - [decided] A failing source keeps its last good data and shows a banner.
-- [decided] "Possibly out of date" flag: stage file unchanged for `stale_days` while newer commits exist.
+- [decided] "Possibly out of date" flag: stage value unchanged for `stale_days` while newer commits exist.
+  2026-10-20: "stage changed" is the commit where the `stage` value last changed, not the last commit to
+  touch `.project.toml` (next/notes change most sessions, so the flag never fired). [confirmed] against the
+  current GraphQL schema: `Commit.file(path:)` returns the file at each commit of
+  `history(path: ".project.toml")`, so one request reads 20 versions. Cached per repo
+  (`stages` in last-good.json, keyed by the file's newest commit); nothing is fetched while the file is
+  unchanged or its stage value equals the cached one, and invalid stages are never looked up.
+  [confirmed] 2026-10-20 live, 12 repos: first run 7 requests for the 6 repos with a valid stage (one
+  needed a second page), 7 rate-limit points, 5.6 s; the next refresh 0 requests. Result for project-yard
+  matched `git log` (stage became live in 1f10a07, 2026-10-02 07:45 UTC; the old method said Oct 19).
+  [inference] a stage changed and changed back between two refreshes keeps the older date; accepted.
 - [decided] Replaces the earlier hosted claude.ai "Project yard" page (its data has been deleted).
 - [decided] UI v2 follows the Claude Design mockups in `docs/design/` (Nocturne tokens): overview, compact
   layout ≤560px for the KDE panel popup, `#/owner/repo` detail pages. Inter is not loaded from Google Fonts.
+- [decided] 2026-10-20: UI v5 replaces v3, following `docs/design/v5/` (the final handoff); where the build
+  differs is listed in `docs/design/README.md`. Data added for it: `fork` per repo; `firstSeen` per repo,
+  stored in `/data/seen.json` with a `baseline` (when tracking began) so repos present at the start aren't
+  all "new"; the source's `kind` (User/Organization, from `__typename`, no extra cost). Popular-path titles
+  and the full stored traffic history were already in the page data.
 - [decided] 2026-10-19: UI v3 replaces v2. The handoff is kept unchanged in `docs/design/v3/`; where the
   build differs (stage file name, traffic, settings, compact by width, field names) is listed in
   `docs/design/README.md`. The collector adds each release's `isPrerelease` and its assets' name, size and
@@ -100,14 +115,19 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
     show/hide settings screen built and tested against fixtures (`dev/demo.py`). Run live the same day:
     traffic read for all 6 public repos of juicetheforce; see the v0.3 decisions above.
   - 2026-10-19: UI v3 built from the handoff and checked against fixtures at 1920, 5120 and 420 wide, plus
-    detail pages (public repo with traffic, repo with no stage file) and settings. Awaiting review; not released.
+    detail pages (public repo with traffic, repo with no stage file) and settings. Released as v0.4.
+  - 2026-10-20: UI v5 and the stage-change date built; checked live (read-only, scratch data folder) and
+    against fixtures at 1920, 5120 and 420 wide. Awaiting review; not released.
 - M5+ Re-evaluate: filters, second source (an org), anything the live board shows is missing.
 
 ## Testing
 Monkeypatch `app.graphql` to return a fixture shaped like the GraphQL response
 (`repositoryOwner.repositories.nodes[]` with `stageFile`, `issues{totalCount,nodes}`, `defaultBranchRef.target.{commits,w0..w11,stageHistory}` where each `wN` is `{totalCount}`).
+`stageHistory.nodes[0]` needs `{committedDate, oid}`.
 `app.graphql(api, token, query, variables, key)` is also called with `key="repository"` for the 52-week query
-(`repository.defaultBranchRef.target.w0..w51`); branch on `key`. Then
+(`repository.defaultBranchRef.target.w0..w51`) and for `app.STAGE_QUERY`
+(`repository.defaultBranchRef.target.history{pageInfo,nodes[]{committedDate,oid,file{object{text}}}}`);
+branch on `key` and on `query is app.STAGE_QUERY`. Then
 point `DATA_DIR` at a temp dir, call `app.refresh(app.Board(cfg))`, then open `site/index.html`.
 Traffic goes through `app.rest(url, token)`; monkeypatch it too, returning the REST shapes or raising
 `app.TrafficUnavailable` (no permission) or `app.SourceError` (network). `dev/demo.py` does all of this.

@@ -33,6 +33,7 @@ SITE_DIR = DATA_DIR / "site"
 STATE_FILE = DATA_DIR / "last-good.json"
 TRAFFIC_FILE = DATA_DIR / "traffic.json"    # history beyond GitHub's 14 days: worth backing up
 SETTINGS_FILE = DATA_DIR / "settings.json"  # choices made on the settings screen
+SEEN_FILE = DATA_DIR / "seen.json"          # when each repo first appeared ("new" in Settings)
 TEMPLATE = Path(__file__).with_name("template.html")
 PORT = int(os.environ.get("PORT", "8087"))
 
@@ -49,6 +50,8 @@ ASSETS = 20         # assets read per release
 DEFAULT_API = "https://api.github.com/graphql"
 TRAFFIC_REFRESH = timedelta(hours=24)  # traffic is daily data; read it once a day per repo
 TRAFFIC_RETRY = timedelta(hours=1)     # after a network error or GitHub hiccup
+STAGE_PAGE = 20       # commits that touched .project.toml read per request (see fetch_stage_changes)
+STAGE_MAX_PAGES = 5   # stop looking further back than this many pages
 
 log = logging.getLogger("dashboard")
 
@@ -73,6 +76,7 @@ QUERY = """
 query($owner: String!, $cursor: String, %s) {
   rateLimit { cost }
   repositoryOwner(login: $owner) {
+    __typename
     repositories(first: %d, after: $cursor, orderBy: {field: PUSHED_AT, direction: DESC}) {
       pageInfo { hasNextPage endCursor }
       nodes {
@@ -95,7 +99,7 @@ query($owner: String!, $cursor: String, %s) {
             ... on Commit {
               commits: history(first: %d) { nodes { messageHeadline committedDate url } }
 %s
-              stageHistory: history(first: 1, path: ".project.toml") { nodes { committedDate } }
+              stageHistory: history(first: 1, path: ".project.toml") { nodes { committedDate oid } }
             }
           }
         }
@@ -121,6 +125,28 @@ query($owner: String!, $name: String!, %s) {
   }
 }
 """ % (week_var_decls(YEAR_WEEKS), week_fields(YEAR_WEEKS))
+
+
+# The commits that touched .project.toml, newest first, each with the file as it was
+# at that commit, so the page can date the last change of the stage value itself
+# (next and notes change far more often). Only run when the stage may have changed.
+STAGE_QUERY = """
+query($owner: String!, $name: String!, $cursor: String) {
+  rateLimit { cost }
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef {
+      target {
+        ... on Commit {
+          history(first: %d, after: $cursor, path: ".project.toml") {
+            pageInfo { hasNextPage endCursor }
+            nodes { committedDate oid file(path: ".project.toml") { object { ... on Blob { text } } } }
+          }
+        }
+      }
+    }
+  }
+}
+""" % STAGE_PAGE
 
 
 class SourceError(Exception):
@@ -282,7 +308,7 @@ def cost(data):
 
 
 def fetch_source(src, now):
-    """All repos for one owner, plus the rate-limit points spent getting them."""
+    """All repos for one owner, the rate-limit points spent, and whether it's a User or an Organization."""
     owner = src["owner"]
     api, token = source_auth(src)
     variables = week_vars(week_starts(now, RECENT_WEEKS))
@@ -297,7 +323,7 @@ def fetch_source(src, now):
         page = ro["repositories"]
         repos.extend(n for n in page["nodes"] if n)
         if not page["pageInfo"]["hasNextPage"]:
-            return repos, points
+            return repos, points, ro.get("__typename")
         cursor = page["pageInfo"]["endCursor"]
 
 
@@ -333,6 +359,68 @@ def fetch_years(src, repos, years, now):
             "pushedAt": repo["pushedAt"],
             "weeks": {d.date().isoformat(): n for d, n in zip(starts, week_counts(target, YEAR_WEEKS))},
         }
+    return fetched, points
+
+
+def stage_value(text):
+    """The stage in one version of .project.toml, or None if missing or unreadable."""
+    try:
+        return str(tomllib.loads(text).get("stage", "")).strip().lower() or None
+    except (tomllib.TOMLDecodeError, AttributeError, TypeError):
+        return None
+
+
+def fetch_stage_changes(src, repos, stages):
+    """Keep `stages` (keyed by owner/name) holding when each repo's stage value last changed.
+
+    Cached per repo as {fileCommit, stage, changedAt}. Nothing is fetched while the newest
+    commit touching .project.toml is the cached one, or while the stage still matches the
+    cached value (only next/notes changed). Otherwise STAGE_QUERY walks the file's history
+    back to the commit where the current value first appeared. Failures are logged and the
+    repo falls back to the file's last commit date in shape().
+    """
+    api, token = source_auth(src)
+    fetched, points = 0, 0
+    for repo in repos:
+        rid = repo["nameWithOwner"]
+        target = (repo.get("defaultBranchRef") or {}).get("target") or {}
+        last = ((target.get("stageHistory") or {}).get("nodes") or [None])[0]
+        current = stage_value((repo.get("stageFile") or {}).get("text") or "")
+        if not last or current not in STAGES:  # no file, or no valid stage to date
+            stages.pop(rid, None)
+            continue
+        cached = stages.get(rid)
+        if cached and cached["fileCommit"] == last["oid"]:
+            continue
+        if cached and cached["stage"] == current:
+            cached["fileCommit"] = last["oid"]  # only other fields changed
+            continue
+        changed_at, cursor = None, None
+        try:
+            for _ in range(STAGE_MAX_PAGES):
+                data = graphql(api, token, STAGE_QUERY, {"owner": src["owner"], "name": repo["name"], "cursor": cursor}, "repository")
+                points += cost(data)
+                hist = ((((data.get("repository") or {}).get("defaultBranchRef") or {}).get("target") or {})
+                        .get("history") or {})
+                ended = False
+                for node in hist.get("nodes") or []:
+                    blob = ((node.get("file") or {}).get("object") or {}).get("text")
+                    if stage_value(blob or "") != current:
+                        ended = True
+                        break
+                    changed_at = node["committedDate"]
+                if ended or not hist.get("pageInfo", {}).get("hasNextPage"):
+                    break
+                cursor = hist["pageInfo"]["endCursor"]
+            else:
+                log.info("%s: stage unchanged for %d+ commits to %s; using the oldest one read",
+                         rid, STAGE_PAGE * STAGE_MAX_PAGES, STAGE_FILE)
+        except SourceError as e:
+            log.warning("%s: stage change date not updated: %s", rid, e)
+            continue
+        if changed_at:
+            fetched += 1
+            stages[rid] = {"fileCommit": last["oid"], "stage": current, "changedAt": changed_at}
     return fetched, points
 
 
@@ -372,7 +460,7 @@ def read_stage_file(repo):
         return {}, f"{STAGE_FILE} has a syntax error: {e}"
 
 
-def shape(repo, owner, year, now):
+def shape(repo, owner, year, now, stage_changed=None):
     meta, err = read_stage_file(repo)
     stage = str(meta.get("stage", "")).strip().lower() or None
     if stage and stage not in STAGES:
@@ -417,6 +505,7 @@ def shape(repo, owner, year, now):
         "url": repo["url"],
         "private": repo["isPrivate"],
         "archived": repo["isArchived"],
+        "fork": repo.get("isFork", False),
         "hasStageFile": bool(repo.get("stageFile")),
         "stageError": err,
         "name": str(meta.get("name") or repo["name"]),
@@ -454,7 +543,9 @@ def shape(repo, owner, year, now):
             "weeks": [known.get(d.date().isoformat(), None if target else 0) for d in year_starts],
             "fetchedAt": (year or {}).get("fetchedAt"),
         },
-        "stageUpdated": stage_hist["committedDate"] if stage_hist else None,
+        # When the stage value last changed (fetch_stage_changes); before that has run,
+        # the last commit that touched the file.
+        "stageUpdated": stage_changed or (stage_hist["committedDate"] if stage_hist else None),
     }
 
 
@@ -504,6 +595,9 @@ class Board:
         self.traffic = load_json(TRAFFIC_FILE, {})
         self.settings = load_json(SETTINGS_FILE, {})
         self.settings.setdefault("hidden", [])
+        # Repos present when tracking began share the baseline time, so only repos
+        # that appear later count as new.
+        self.seen = load_json(SEEN_FILE, {})
 
     def known_repos(self):
         """Every repo the collector found (after config.toml's filters), by lowercase id."""
@@ -521,17 +615,21 @@ def refresh(board):
         owner = src["owner"]
         entry = state.setdefault(owner, {"projects": [], "fetchedAt": None})
         try:
-            repos, points = fetch_source(src, now)
+            repos, points, entry["kind"] = fetch_source(src, now)
             repos = [r for r in repos if keep(r, cfg["filters"])]
             years = {r["nameWithOwner"]: y for r in repos
                      if (y := entry.get("years", {}).get(r["nameWithOwner"]))}
             fetched, year_points = fetch_years(src, repos, years, now)
-            entry["years"] = years
-            entry["projects"] = [shape(r, owner, years.get(r["nameWithOwner"]), now) for r in repos]
+            stages = {r["nameWithOwner"]: c for r in repos
+                      if (c := entry.get("stages", {}).get(r["nameWithOwner"]))}
+            stage_fetched, stage_points = fetch_stage_changes(src, repos, stages)
+            entry["years"], entry["stages"] = years, stages
+            entry["projects"] = [shape(r, owner, years.get(r["nameWithOwner"]), now,
+                                       (stages.get(r["nameWithOwner"]) or {}).get("changedAt")) for r in repos]
             entry["fetchedAt"] = now.isoformat()
             entry["error"] = None
-            log.info("%s: %d repos, 52-week activity updated for %d; %d rate-limit points",
-                     owner, len(repos), fetched, points + year_points)
+            log.info("%s: %d repos, 52-week activity updated for %d, stage changes for %d; %d rate-limit points",
+                     owner, len(repos), fetched, stage_fetched, points + year_points + stage_points)
             done, unavailable = fetch_traffic(src, repos, traffic, cfg["traffic"]["include_private"], now)
             if done or unavailable:
                 log.info("%s: traffic read for %d repos, unavailable for %d", owner, done, unavailable)
@@ -547,8 +645,14 @@ def refresh(board):
 
     with board.lock:
         board.state, board.traffic = state, traffic
+        seen = board.seen.setdefault("repos", {})
+        board.seen.setdefault("baseline", now.isoformat())
+        for e in state.values():
+            for p in e["projects"]:
+                seen.setdefault(p["id"], now.isoformat())
         atomic_write(STATE_FILE, json.dumps(state))
         atomic_write(TRAFFIC_FILE, json.dumps(traffic))
+        atomic_write(SEEN_FILE, json.dumps(board.seen, indent=2))
         render(board, now)
 
 
@@ -561,6 +665,7 @@ def render(board, now):
         for p in e["projects"]:
             collected = not p["private"] or cfg["traffic"]["include_private"]
             projects.append({**p, "hidden": p["id"].lower() in hidden,
+                             "firstSeen": board.seen.get("repos", {}).get(p["id"]),
                              "traffic": board.traffic.get(p["id"]) if collected else None,
                              "trafficCollected": collected})
     data = {
@@ -568,8 +673,9 @@ def render(board, now):
         "staleDays": cfg["stale_days"],
         "refreshMinutes": cfg["refresh_minutes"],
         "stages": STAGES,
+        "seenSince": board.seen.get("baseline"),
         "sources": [
-            {"owner": o, "error": e.get("error"), "fetchedAt": e.get("fetchedAt"), "count": len(e["projects"])}
+            {"owner": o, "kind": e.get("kind"), "error": e.get("error"), "fetchedAt": e.get("fetchedAt"), "count": len(e["projects"])}
             for o, e in state.items()
         ],
         "projects": projects,

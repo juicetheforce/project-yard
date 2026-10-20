@@ -1,7 +1,7 @@
 name = "Project yard"
 summary = "Self-hosted dashboard of every project's stage and commit activity across GitHub."
 stage = "live"
-next = "M3: watch v0.5 on the host; collect feedback for the next release"
+next = "Review the UI v5 rebuild and stage-change dating (docs/design/README.md lists deviations), then release v0.6"
 category = "Homelab"
 paused = false
 focus = false

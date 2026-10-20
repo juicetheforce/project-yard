@@ -5,10 +5,12 @@
 
 Feeds fixture data through the real collector by replacing app.graphql, the same way
 docs/scope.md → Testing describes, so the page shows every state: focus, paused,
-archived, quiet, no stage file, an invalid stage file, and an empty repo.
-Traffic comes from a fake app.rest: a month of older history is seeded in
-traffic.json first, so the charts show history merged past GitHub's 14 days.
-One repo answers 403 (traffic unavailable) and one is hidden in settings.json.
+archived, quiet, stage possibly out of date, no project file, an invalid project
+file, and an empty repo.
+Traffic comes from a fake app.rest for public repos. Older history is seeded in
+traffic.json first (30, 180 and 420 days), so the 90d/All ranges and weekly
+bucketing show. One public repo answers 403 (traffic unavailable). Two repos are
+hidden in settings.json, one of them a fork, and one repo is "new" in seen.json.
 """
 import json
 import os
@@ -92,17 +94,27 @@ PROJECTS = [
 ]
 
 
-def fake_repo(name, stage_text, last_days, weekly, messages, issues, archived):
+PUBLIC = {"harbor", "weather-station", "recipe-box", "old-site"}
+# Days since the stage value last changed, where it differs from the file's last edit.
+STAGE_AGE = {"weather-station": 60, "harbor": 30, "old-site": 300}
+
+
+def stage_touch(last_days):
+    """Days since a commit last touched .project.toml (next/notes edits included)."""
+    return min(last_days or 0, 20) + 3
+
+
+def fake_repo(name, stage_text, last_days, weekly, messages, issues, archived, fork=False):
     commits = [{"messageHeadline": m, "committedDate": ts(last_days + i * 2), "url": "#"} for i, m in enumerate(messages)] \
         if last_days is not None else []
     target = {
         "commits": {"nodes": commits},
-        "stageHistory": {"nodes": [{"committedDate": ts(min(last_days or 0, 20) + 14)}] if stage_text else []},
+        "stageHistory": {"nodes": [{"committedDate": ts(stage_touch(last_days)), "oid": name + "-head"}] if stage_text else []},
         **{f"w{i}": {"totalCount": n} for i, n in enumerate(weekly[-app.RECENT_WEEKS:])},
     }
     return {
         "name": name, "nameWithOwner": f"example-user/{name}", "url": "#", "description": None,
-        "isPrivate": name != "weather-station", "isArchived": archived, "isFork": False,
+        "isPrivate": name not in PUBLIC, "isArchived": archived, "isFork": fork,
         "stargazerCount": len(name) * 3, "forkCount": len(name) // 3, "watchers": {"totalCount": len(name) // 2},
         "releases": RELEASES.get(name, {"totalCount": 0, "nodes": []}),
         "pushedAt": ts(last_days) if last_days is not None else None,
@@ -111,7 +123,7 @@ def fake_repo(name, stage_text, last_days, weekly, messages, issues, archived):
             {"title": t, "url": "#", "createdAt": ts(d), "labels": {"nodes": [{"name": l} for l in labels]}}
             for t, labels, d in issues]},
         "defaultBranchRef": {"target": target} if commits else None,
-        "_weekly": weekly,
+        "_weekly": weekly, "_stage_text": stage_text, "_last_days": last_days,
     }
 
 
@@ -131,13 +143,24 @@ RELEASES = {
         release("v1.1.0", 120, [("weather-station-1.1.0.tar.gz", 85_000, 14)])]},
 }
 
-REPOS = [fake_repo(*p) for p in PROJECTS]
+REPOS = [fake_repo(*p) for p in PROJECTS] + [
+    fake_repo("tree-sitter-toml", None, 40, weeks(0, 30, 1), ["Upstream sync"], [], False, fork=True)]
 
 
 def fake_graphql(api_url, token, query, variables, key):
     if key == "repositoryOwner":
         return {"repositoryOwner": {"repositories": {"pageInfo": {"hasNextPage": False}, "nodes": REPOS}}}
     repo = next(r for r in REPOS if r["name"] == variables["name"])
+    if query is app.STAGE_QUERY:
+        # Newest first: the last edit (notes/next), the commit that set the current stage,
+        # and one before it with an earlier stage.
+        text, touch = repo["_stage_text"], stage_touch(repo["_last_days"])
+        changed = max(STAGE_AGE.get(repo["name"], touch + 11), touch)
+        older = text.replace(text.split('"')[1], "idea", 1) if text.startswith("stage") else ""
+        nodes = [{"committedDate": ts(d), "oid": f"{repo['name']}-{d}", "file": {"object": {"text": t}}}
+                 for d, t in ((touch, text), (changed, text), (changed + 9, older))]
+        return {"repository": {"defaultBranchRef": {"target": {"history": {
+            "pageInfo": {"hasNextPage": False, "endCursor": None}, "nodes": nodes}}}}}
     return {"repository": {"defaultBranchRef": {"target": {f"w{i}": {"totalCount": n} for i, n in enumerate(repo["_weekly"])}}}}
 
 
@@ -161,19 +184,32 @@ def fake_rest(url, token):
             for p, t, c in [("", name, 52), ("/blob/main/README.md", "README", 14), ("/releases", "Releases", 5)]]
 
 
-# Start clean, then seed 30 older days for two repos so merging past 14 days is visible.
-for f in ("traffic.json", "settings.json", "last-good.json"):
+def history(days, scale):
+    """Older daily counts (before GitHub's 14-day window) for seeding traffic.json."""
+    out = {}
+    for kind, k in (("views", scale), ("clones", max(1, scale // 3))):
+        out[kind] = {}
+        for d in range(14, days):
+            n = (d * 7 + k * 3) % (k + 5) + (k if d % 9 == 0 else 0)
+            out[kind][(NOW - timedelta(days=d)).date().isoformat()] = {"count": n, "uniques": max(1 if n else 0, n // 3)}
+    return out
+
+
+# Start clean, then seed older traffic so the 90d and All ranges have something to show.
+for f in ("traffic.json", "settings.json", "last-good.json", "seen.json"):
     (OUT / f).unlink(missing_ok=True)
 app.TRAFFIC_FILE.write_text(json.dumps({
-    f"example-user/{n}": {k: {(NOW - timedelta(days=d)).date().isoformat(): {"count": d % 9, "uniques": d % 4} for d in range(14, 44)}
-                          for k in ("views", "clones")}
-    for n in ("harbor", "weather-station")}))
-app.SETTINGS_FILE.write_text(json.dumps({"hidden": ["example-user/scratchpad"]}))
+    "example-user/harbor": history(180, 20), "example-user/weather-station": history(30, 8),
+    "example-user/old-site": history(420, 4)}))
+app.SETTINGS_FILE.write_text(json.dumps({"hidden": ["example-user/scratchpad", "example-user/tree-sitter-toml"]}))
+# Tracking began 30 days ago with every repo but garden-planner, which shows as new.
+app.SEEN_FILE.write_text(json.dumps({"baseline": ts(30), "repos": {
+    r["nameWithOwner"]: ts(30) for r in REPOS if r["name"] != "garden-planner"}}))
 
 app.graphql = fake_graphql
 app.rest = fake_rest
 cfg = app.load_config()
 cfg["filters"]["include_archived"] = True
-cfg["traffic"]["include_private"] = True
+cfg["filters"]["include_forks"] = True
 app.refresh(app.Board(cfg))
 print(f"Wrote {OUT / 'index.html'}")

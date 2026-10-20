@@ -9,18 +9,20 @@ static page. Standard-library Python, no dependencies, one container.
 ## How it works
 
 - Each repo can have a `.project.toml` at its root with `stage`, `next`, `summary`, `notes`, etc.
-  (see `templates/project.toml`). Repos without one still show up, flagged "No stage file".
+  (see `templates/project.toml`). Repos without one still show up, flagged "No project file".
 - Put `templates/global-CLAUDE.md` in `~/.claude/CLAUDE.md` so Claude Code keeps the file current in
   every one of your repos (and only yours; the block names the accounts it applies to).
 - Commit activity (12 weeks on the board, 52 on each project's page), recent commits and open
   issues come straight from GitHub.
-- If the stage file hasn't changed in `stale_days` but commits have landed since, the dashboard
-  flags the stage as possibly out of date.
+- "Stage changed" is the date of the commit that last changed the `stage` value itself (edits to
+  `next` or `notes` don't count). If that's more than `stale_days` ago and commits have landed
+  since, the dashboard flags the stage as possibly out of date.
 - Stars, forks, watchers and release download counts come with every refresh. Container image
   pulls from GHCR aren't shown: GitHub's API doesn't expose package download counts.
 - Traffic (views, clones, top referrers, popular pages) is read once a day per public repo.
   GitHub keeps only 14 days of it, so the dashboard stores each day and builds up its own history.
 - A gear icon on the board opens the settings screen, where any repo can be hidden or shown again.
+  Repos that appeared in the last 7 days are tagged "new" there.
 - If a token fails, a banner says so and the board keeps showing the last good data for that source.
 - Narrow windows (560px or less, e.g. a desktop panel popup) get a compact layout.
 
@@ -126,7 +128,8 @@ the same `pull` and `up -d`.
 
 `traffic.json` in the volume holds every day of traffic collected so far. GitHub only keeps the
 last 14 days, so this history can't be fetched again if it's lost. `settings.json` holds which repos are
-hidden. Everything else in the volume rebuilds itself on the next refresh. To copy both files out:
+hidden. Everything else in the volume rebuilds itself on the next refresh (losing `seen.json` only
+means no repo is tagged "new" until another one appears). To copy both files out:
 
     cd ~/project-yard
     docker compose cp project-dashboard:/data/traffic.json  ./backup-traffic.json
@@ -170,9 +173,9 @@ tag is also published, for trying things out.
 `idea`, `scoping`, `design`, `building`, `testing`, `live`. Anything else shows as an error on
 the card. `paused = true` keeps the stage but dims the row.
 
-## Repos without a stage file
+## Repos without a project file
 
-They show on the board as "No stage file". The first Claude Code session in the repo proposes
+They show on the board as "No project file". The first Claude Code session in the repo proposes
 one drafted from the repo itself (see `templates/global-CLAUDE.md`); nothing is copied by hand.
 
 ## Development
