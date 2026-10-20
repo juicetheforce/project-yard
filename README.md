@@ -54,13 +54,13 @@ version in `compose.yaml`.
 ### Get the three files
 
     mkdir -p ~/project-yard && cd ~/project-yard
-    base=https://raw.githubusercontent.com/juicetheforce/project-yard/v0.3
+    base=https://raw.githubusercontent.com/juicetheforce/project-yard/v0.4
     curl -fsSLo compose.yaml $base/compose.yaml
     curl -fsSLo config.toml  $base/config.example.toml
     curl -fsSLo .env         $base/.env.example
     chmod 600 .env
 
-`v0.3` is the release to run; the newest is listed at https://github.com/juicetheforce/project-yard/tags.
+`v0.4` is the release to run; the newest is listed at https://github.com/juicetheforce/project-yard/tags.
 
 ### Fill them in
 
