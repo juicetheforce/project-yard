@@ -9,5 +9,6 @@ paused = false
 focus = false
 # notes = """
 # Optional. Shown on the dashboard's detail page. Decisions, constraints,
-# anything worth seeing at a glance. Line breaks are kept.
+# anything worth seeing at a glance. "## Title" starts a section (sections
+# sit side by side in columns), "- " starts a bullet, other lines are paragraphs.
 # """

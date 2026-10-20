@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/nocturne-706226a9-b3e9-48a0-8e47-78818f364b8a/styles.css">
+  <script src="_ds/nocturne-706226a9-b3e9-48a0-8e47-78818f364b8a/_ds_bundle.js"></script>
+  <style>body{margin:0;font-variant-numeric:tabular-nums;background:var(--color-bg)}a{color:var(--color-accent)}a:hover{color:var(--color-accent-400)}select.input option{background:var(--color-surface)}
+  /* the only width-dependent rules: issue titles column appears past 2400px; detail rows go multi-column past 1100px (maps to @media in the vanilla build) */
+  .yard-issues{display:none}
+  .yard-dgrid{display:flex;flex-direction:column;gap:16px}
+  .yd-row{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+  @container yard (min-width:1100px){.yd-top{grid-template-columns:minmax(0,4fr) minmax(0,3fr) minmax(0,3fr) minmax(0,3fr)}.yd-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}</style>
+</helmet>
+<div style="container-type:inline-size;container-name:yard;min-height:100%;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);font-size:14px;line-height:1.45">
+
+<sc-if value="{{ isCompact }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;height:100%;min-height:100%">
+    <header style="display:flex;align-items:center;gap:10px;padding:10px 12px 8px">
+      <div style="font-family:var(--font-heading);font-weight:500;font-size:14px;margin-right:auto">Project yard</div>
+      <div class="seg" role="group" aria-label="Show" style="border-radius:var(--radius-sm)">
+        <sc-for list="{{ compactFilters }}" as="f" hint-placeholder-count="2">
+          <label class="seg-opt" style="padding:3px 9px;font-size:11.5px"><input type="radio" name="yard-cf" checked="{{ f.active }}" onChange="{{ f.onClick }}">{{ f.label }}</label>
+        </sc-for>
+      </div>
+      <span style="font-size:11px;color:var(--color-neutral-600)">{{ refreshedAt }}</span>
+    </header>
+    <sc-if value="{{ hasSourceError }}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="margin:0 12px 6px;padding:5px 9px;border-radius:var(--radius-sm);background:var(--color-surface);font-size:11.5px;color:oklch(0.74 0.13 25)">{{ compactErrorText }}</div>
+    </sc-if>
+    <main style="padding:0 6px 8px;display:flex;flex-direction:column">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+        <div style="display:contents">
+          <sc-if value="{{ g.hasLabel }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:{{ g.color }};padding:8px 6px 3px;display:flex;align-items:center;gap:6px"><span style="width:10px;height:1px;background:{{ g.color }}"></span>{{ g.label }}</div>
+          </sc-if>
+          <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="4">
+            <a href="{{ p.href }}" aria-label="{{ p.aria }}" style="display:grid;grid-template-columns:minmax(0,1fr) 78px 42px;grid-template-rows:auto auto;gap:2px 10px;align-items:center;padding:6px 6px 7px;border-radius:var(--radius-sm);color:inherit;text-decoration:none;opacity:{{ p.opacity }};background:linear-gradient(to right,transparent,var(--color-divider) 24px,var(--color-divider) calc(100% - 24px),transparent) no-repeat bottom/100% 1px" style-hover="background:linear-gradient(var(--color-surface),var(--color-surface)) no-repeat 0 0/100% 100%,linear-gradient(to right,transparent,var(--color-divider) 24px,var(--color-divider) calc(100% - 24px),transparent) no-repeat bottom/100% 1px">
+              <div style="display:flex;align-items:center;gap:6px;min-width:0;line-height:1.3">
+                <sc-if value="{{ p.focus }}" hint-placeholder-val="{{ false }}"><span title="Focus" style="width:5px;height:5px;flex:none;border-radius:50%;background:var(--color-accent);box-shadow:0 0 5px var(--color-accent)"></span></sc-if>
+                <span style="font-family:var(--font-heading);font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                <span style="font-size:11px;color:{{ p.stageColor }};white-space:nowrap">{{ p.stageLabel }}</span>
+              </div>
+              <div role="img" aria-label="{{ p.stageAria }}" style="display:flex;align-items:center;height:8px">
+                <sc-for list="{{ p.steps }}" as="s" hint-placeholder-count="6">
+                  <span style="display:flex;align-items:center;flex:{{ s.grow }}"><span style="flex:1;height:1px;background:{{ s.conn }}"></span><span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ s.bg }};border:1px {{ s.bs }} {{ s.border }};box-shadow:{{ s.shadowSm }}"></span></span>
+                </sc-for>
+              </div>
+              <span style="font-size:11px;text-align:right;color:{{ p.lastColor }}">{{ p.lastShort }}</span>
+              <div style="grid-column:1/-1;display:flex;gap:8px;min-width:0;font-size:12px;line-height:1.3">
+                <sc-if value="{{ p.hasFlag }}" hint-placeholder-val="{{ false }}"><span style="flex:none;color:{{ p.flagColor }}">{{ p.flag }}</span></sc-if>
+                <span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ p.nextColor }}">{{ p.nextText }}</span>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </sc-for>
+    </main>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+  <header style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding:14px 24px 6px">
+    <div style="font-family:var(--font-heading);font-weight:500;font-size:17px;margin-right:auto;letter-spacing:-0.01em">Project yard</div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:12px;color:var(--color-neutral-500)">
+      <sc-for list="{{ sources }}" as="s" hint-placeholder-count="1">
+        <span title="{{ s.title }}" style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:{{ s.dot }}"></span>{{ s.name }}</span>
+      </sc-for>
+      <span style="color:var(--color-neutral-600)">Refreshed {{ refreshedAt }} · every 15 min</span>
+    </div>
+  </header>
+
+  <sc-if value="{{ hasSourceError }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:8px 24px 0">
+      <div role="status" style="display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:8px 12px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:var(--shadow-sm);font-size:13px;max-width:1200px">
+        <sc-for list="{{ sourceErrors }}" as="e" hint-placeholder-count="1">
+          <span><span style="color:oklch(0.74 0.13 25)">{{ e.name }}: {{ e.error }}.</span> <span style="color:var(--color-neutral-400)">Showing its last good data from {{ e.lastGood }}. The page will recover on the next successful refresh.</span></span>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <section aria-label="Summary and stage filter" role="group" style="padding:20px 24px 4px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:flex-end">
+    <sc-for list="{{ strip }}" as="c" hint-placeholder-count="10">
+      <sc-if value="{{ c.gap }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:1px;height:38px;background:var(--color-neutral-800);align-self:flex-end;margin-bottom:4px"></span></sc-if>
+      <sc-if value="{{ c.button }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ c.onClick }}" aria-pressed="{{ c.active }}" style="font:inherit;cursor:pointer;text-align:left;background:{{ c.bg }};border:0;border-radius:var(--radius-md);padding:6px 12px 7px;min-width:64px;display:flex;flex-direction:column;gap:5px;box-shadow:{{ c.ring }}" style-hover="background:var(--color-surface)">
+          <span style="font-family:var(--font-heading);font-weight:500;font-size:{{ c.size }};line-height:1;color:{{ c.color }}">{{ c.n }}</span>
+          <span style="font-size:11px;line-height:1.2;color:{{ c.labelColor }}">{{ c.label }}</span>
+        </button>
+      </sc-if>
+    </sc-for>
+  </section>
+
+  <section aria-label="Category filter and sort" style="padding:10px 24px 10px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;max-width:1600px">
+    <div role="group" aria-label="Category" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <sc-for list="{{ chips }}" as="f" hint-placeholder-count="5">
+        <sc-if value="{{ f.divider }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:1px;height:18px;margin:0 4px;background:var(--color-neutral-800)"></span></sc-if>
+        <sc-if value="{{ f.button }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ f.onClick }}" aria-pressed="{{ f.active }}" style="font:inherit;font-size:12.5px;line-height:1;padding:6px 10px;border-radius:var(--radius-md);cursor:pointer;background:{{ f.bg }};color:{{ f.color }};border:1px solid {{ f.border }};display:inline-flex;gap:6px;align-items:center" style-hover="border-color:var(--color-neutral-500)">{{ f.label }}<span style="opacity:.55;font-size:11px">{{ f.n }}</span></button>
+        </sc-if>
+      </sc-for>
+    </div>
+    <label style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-500)">Sort
+      <select class="input" value="{{ sort }}" onChange="{{ setSort }}" style="width:auto;min-height:30px;padding:3px 8px;font-size:12.5px">
+        <option value="stage">Furthest along</option>
+        <option value="recent">Most recent commit</option>
+        <option value="quiet">Quietest first</option>
+        <option value="name">Name</option>
+      </select>
+    </label>
+  </section>
+
+  <main style="padding:0 24px 48px;display:flex;flex-direction:column">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+      <div style="display:contents">
+        <sc-if value="{{ g.hasLabel }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:{{ g.color }};padding:16px 10px 4px;display:flex;align-items:center;gap:8px"><span style="width:14px;height:1px;background:{{ g.color }}"></span>{{ g.label }}</div>
+        </sc-if>
+        <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="4">
+          <a href="{{ p.href }}" aria-label="{{ p.aria }}" style="display:flex;flex-wrap:wrap;gap:8px 28px;padding:11px 10px 12px;color:inherit;text-decoration:none;border-radius:var(--radius-md);opacity:{{ p.opacity }};background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom/100% 1px" style-hover="background:linear-gradient(var(--color-surface),var(--color-surface)) no-repeat 0 0/100% 100%,linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat bottom/100% 1px">
+            <div style="flex:1 1 240px;max-width:380px;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.3">
+                <sc-if value="{{ p.focus }}" hint-placeholder-val="{{ false }}"><span title="Focus" style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 6px var(--color-accent)"></span></sc-if>
+                <span style="font-family:var(--font-heading);font-weight:500;font-size:15px;color:var(--color-text)">{{ p.name }}</span>
+                <sc-if value="{{ p.private }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;color:var(--color-neutral-600);letter-spacing:.04em">private</span></sc-if>
+                <sc-if value="{{ p.archived }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="font-size:10px;padding:1px 7px">archived</span></sc-if>
+                <sc-if value="{{ p.paused }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="font-size:10px;padding:0 7px;border-color:var(--color-neutral-600);color:var(--color-neutral-400)">paused</span></sc-if>
+              </div>
+              <div style="font-size:12.5px;color:var(--color-neutral-400)">{{ p.summary }}</div>
+              <div style="font-size:12px;color:var(--color-neutral-500);display:flex;gap:4px 10px;flex-wrap:wrap">
+                <span>{{ p.category }}</span>
+                <sc-if value="{{ p.hasFlag }}" hint-placeholder-val="{{ false }}"><span style="color:{{ p.flagColor }}">{{ p.flag }}</span></sc-if>
+              </div>
+            </div>
+            <div style="flex:2 1 280px;max-width:640px;min-width:0;padding-top:1px">
+              <div style="font-size:11px;color:var(--color-neutral-600);line-height:1.3;margin-bottom:2px">Next</div>
+              <div style="font-size:14px;line-height:1.35;color:{{ p.nextColor }};text-wrap:pretty">{{ p.nextText }}</div>
+            </div>
+            <div style="flex:0 0 180px;display:flex;flex-direction:column;gap:7px;padding-top:7px">
+              <div role="img" aria-label="{{ p.stageAria }}" style="display:flex;align-items:center;height:10px">
+                <sc-for list="{{ p.steps }}" as="s" hint-placeholder-count="6">
+                  <span style="display:flex;align-items:center;flex:{{ s.grow }}"><span style="flex:1;height:1px;background:{{ s.conn }}"></span><span title="{{ s.label }}" style="width:10px;height:10px;border-radius:50%;flex:none;background:{{ s.bg }};border:1.5px {{ s.bs }} {{ s.border }};box-shadow:{{ s.shadow }}"></span></span>
+                </sc-for>
+              </div>
+              <div style="font-size:12px;display:flex;justify-content:space-between;gap:8px;line-height:1.2"><span style="color:{{ p.stageColor }}">{{ p.stageLabel }}</span><span style="color:var(--color-neutral-600);font-size:11px;white-space:nowrap">{{ p.stageSub }}</span></div>
+            </div>
+            <div style="flex:0 0 90px;display:flex;flex-direction:column;gap:5px;padding-top:3px">
+              <div role="img" aria-label="{{ p.barsAria }}" style="display:flex;align-items:flex-end;gap:2px;height:22px">
+                <sc-for list="{{ p.bars }}" as="b" hint-placeholder-count="12"><span style="flex:1;height:{{ b.h }};background:{{ b.bg }};border-radius:1px"></span></sc-for>
+              </div>
+              <div style="font-size:11px;color:var(--color-neutral-500);line-height:1.2">{{ p.total12 }} commits · 12w</div>
+            </div>
+            <div style="flex:1 1 190px;max-width:280px;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:3px;font-size:12px;line-height:1.35">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--color-neutral-500)">Last commit</span><span style="color:{{ p.lastColor }}">{{ p.lastText }}</span></div>
+              <div style="color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.lastMsg }}</div>
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--color-neutral-500)">Open issues</span><span style="color:var(--color-neutral-300)">{{ p.issues }}</span></div>
+            </div>
+            <div class="yard-issues" style="flex:2 1 320px;max-width:720px;min-width:0;flex-direction:column;gap:3px;padding-top:3px;font-size:12px;line-height:1.35">
+              <div style="color:var(--color-neutral-500)">{{ p.issuesHeading }}</div>
+              <sc-for list="{{ p.topIssues }}" as="i" hint-placeholder-count="2">
+                <div style="display:flex;gap:10px;min-width:0"><span style="color:var(--color-neutral-300);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ i.title }}</span><span style="color:var(--color-neutral-600);flex:none">{{ i.age }}</span></div>
+              </sc-for>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </sc-for>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:56px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="font-family:var(--font-heading);font-weight:500;font-size:17px">No projects match</div>
+        <div style="font-size:13px;color:var(--color-neutral-500)">{{ emptyHint }}</div>
+        <button type="button" class="btn btn-primary" onClick="{{ clearFilter }}">Show all projects</button>
+      </div>
+    </sc-if>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1600px;padding:14px 24px 56px">
+    <a href="#/" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;text-decoration:none;padding:4px 6px 4px 0;border-radius:var(--radius-sm)">← All projects</a>
+
+    <sc-if value="{{ notFound }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:48px 0"><div style="font-family:var(--font-heading);font-weight:500;font-size:20px">No project at this address</div><div style="font-size:13px;color:var(--color-neutral-500);margin-top:6px">{{ routeText }} isn't in any connected source.</div></div>
+    </sc-if>
+
+    <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ true }}">
+      <header style="margin-top:20px;display:flex;flex-wrap:wrap;gap:14px 40px;align-items:flex-start">
+        <div style="flex:1 1 340px;min-width:0;opacity:{{ d.opacity }}">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <sc-if value="{{ d.focus }}" hint-placeholder-val="{{ false }}"><span title="Focus" style="width:8px;height:8px;border-radius:50%;background:var(--color-accent);box-shadow:0 0 8px var(--color-accent)"></span></sc-if>
+            <h1 style="font-size:30px;margin:0">{{ d.name }}</h1>
+            <span class="tag tag-neutral">{{ d.category }}</span>
+            <span class="tag tag-outline" style="border-color:var(--color-neutral-700);color:var(--color-neutral-400)">{{ d.visibilityLower }}</span>
+            <sc-if value="{{ d.archived }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral">archived</span></sc-if>
+            <sc-if value="{{ d.paused }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="border-color:var(--color-neutral-600);color:var(--color-neutral-400)">paused</span></sc-if>
+          </div>
+          <p style="font-size:15px;color:var(--color-neutral-300);margin:8px 0 8px;max-width:64ch;text-wrap:pretty">{{ d.summary }}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px">
+            <a href="{{ d.repoUrl }}" target="_blank" rel="noopener" style="text-decoration:none">{{ d.owner }}/{{ d.repo }} ↗</a>
+            <sc-if value="{{ d.hasFlag }}" hint-placeholder-val="{{ false }}"><span style="color:{{ d.flagColor }}">{{ d.flag }}</span></sc-if>
+          </div>
+        </div>
+        <dl style="flex:0 1 480px;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 20px">
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Open issues</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.issues }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Commits · 12w</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.total12 }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Last commit</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1;color:{{ d.lastColor }}">{{ d.lastShort }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Stage changed</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.stageChangedShort }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Stars</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.stars }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Forks</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.forks }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Watchers</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.watchers }}</dd></div>
+          <div><dt style="font-size:11px;color:var(--color-neutral-500)">Downloads</dt><dd style="margin:2px 0 0;font-family:var(--font-heading);font-weight:500;font-size:22px;line-height:1.1">{{ d.allTime }}</dd></div>
+        </dl>
+      </header>
+
+      <p style="margin:18px 0 0;font-size:12px;color:var(--color-neutral-500);display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-300);border:1px dashed var(--color-accent-700);border-radius:var(--radius-sm);padding:2px 6px;line-height:1.3">needs collector</span>Dashed panels use data the collector doesn't gather yet.</p>
+
+      <div class="yard-dgrid" style="margin-top:14px">
+        <div class="yd-row yd-top">
+        <section class="yd-s" aria-label="Stage and next step" style="background:var(--color-surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:12px;gap:18px">
+          <sc-if value="{{ d.hasStage }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px">
+              <span style="font-family:var(--font-heading);font-weight:500;font-size:20px">{{ d.stageLabel }}</span>
+              <span style="font-size:12.5px;color:var(--color-neutral-500)">stage {{ d.stageIdx1 }} of 6 · changed {{ d.stageChangedText }} ({{ d.stageChangedDate }})</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.noStage }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px">
+              <span style="font-family:var(--font-heading);font-weight:500;font-size:20px;color:var(--color-accent-300)">No stage file</span>
+              <span style="font-size:12.5px;color:var(--color-neutral-400)">This repo has no stage file yet, so it can't be placed on the pipeline.</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.stageError }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px">
+              <span style="font-family:var(--font-heading);font-weight:500;font-size:20px;color:oklch(0.74 0.13 25)">Stage file has an error</span>
+              <span style="font-size:12.5px;color:var(--color-neutral-400);font-family:ui-monospace,monospace">{{ d.stageErrorText }}</span>
+            </div>
+          </sc-if>
+          <div role="img" aria-label="{{ d.stageAria }}" style="position:relative;display:flex;padding-top:2px">
+            <div aria-hidden="true" style="position:absolute;left:calc(100% / 12);right:calc(100% / 12);top:8.5px;height:1px;background:{{ d.lineBg }}"></div>
+            <sc-for list="{{ d.steps }}" as="s" hint-placeholder-count="6">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:0">
+                <span style="position:relative;width:14px;height:14px;border-radius:50%;background:{{ s.dbg }};border:1.5px {{ s.bs }} {{ s.border }};box-shadow:{{ s.shadow }}"></span>
+                <span style="font-size:11.5px;color:{{ s.lc }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding-top:14px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent) no-repeat top/100% 1px">
+            <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">Next step</div>
+            <div style="font-size:17px;line-height:1.35;color:{{ d.nextColor }};text-wrap:pretty">{{ d.nextText }}</div>
+          </div>
+        </section>
+        <section class="yd-a" aria-label="Commit activity" style="background:var(--color-surface);border-radius:var(--radius-md);padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px dashed var(--color-accent-800)">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Commit activity</span><span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-300);border:1px dashed var(--color-accent-700);border-radius:var(--radius-sm);padding:1px 6px;line-height:1.3">52w needs collector</span></div>
+          <div role="img" aria-label="{{ d.bars52Aria }}" style="display:flex;align-items:flex-end;gap:2px;height:64px">
+              <sc-for list="{{ d.bars52 }}" as="b" hint-placeholder-count="52"><span title="{{ b.title }}" style="flex:1;height:{{ b.h }};background:{{ b.bg }};border-radius:1px"></span></sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--color-neutral-600);flex-wrap:wrap"><span>{{ d.chartStart }}</span><span style="color:var(--color-neutral-400)">{{ d.total52 }} commits · 52w · {{ d.total12 }} in the last 12</span><span>now</span></div>
+            <sc-if value="{{ d.noCommits }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-500)">No commits yet.</div></sc-if>
+        </section>
+        <section class="yd-r" aria-label="Repository" style="background:var(--color-surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+          <span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Repository</span>
+          <dl style="margin:0;display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 14px;font-size:13px">
+              <dt style="color:var(--color-neutral-500)">Repo</dt><dd style="margin:0;min-width:0"><a href="{{ d.repoUrl }}" target="_blank" rel="noopener">{{ d.owner }}/{{ d.repo }} ↗</a></dd>
+              <dt style="color:var(--color-neutral-500)">Visibility</dt><dd style="margin:0">{{ d.visibility }}</dd>
+              <dt style="color:var(--color-neutral-500)">Category</dt><dd style="margin:0">{{ d.category }}</dd>
+              <dt style="color:var(--color-neutral-500)">Last commit</dt><dd style="margin:0;min-width:0"><a href="{{ d.lastUrl }}" target="_blank" rel="noopener" style="color:var(--color-text);text-decoration:none">{{ d.lastMsg }}</a><div style="color:var(--color-neutral-500);font-size:12px">{{ d.lastDate }} · {{ d.lastText }}</div></dd>
+              <dt style="color:var(--color-neutral-500)">Stage set</dt><dd style="margin:0">{{ d.stageChangedDate }}</dd>
+            </dl>
+        </section>
+        <section class="yd-rel" aria-label="Releases" style="background:var(--color-surface);border-radius:var(--radius-md);padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px dashed var(--color-accent-800)">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Releases</span><span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-300);border:1px dashed var(--color-accent-700);border-radius:var(--radius-sm);padding:1px 6px;line-height:1.3">needs collector</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-500)">{{ d.allTime }} downloads all time</span></div>
+          <sc-if value="{{ d.hasRelease }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><a href="{{ d.rel.href }}" target="_blank" rel="noopener" style="font-family:var(--font-heading);font-weight:500;font-size:17px;color:var(--color-text);text-decoration:none">{{ d.rel.tag }}</a><sc-if value="{{ d.rel.pre }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline" style="font-size:10px;padding:0 7px;border-color:var(--color-neutral-600);color:var(--color-neutral-400)">pre-release</span></sc-if><span style="font-size:12px;color:var(--color-neutral-500)">{{ d.rel.date }} · {{ d.rel.ago }}</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-300)">{{ d.rel.total }} downloads</span></div>
+            </div>
+            <ul style="list-style:none;margin:0;padding:0 6px 0 0;display:flex;flex-direction:column;max-height:204px;overflow-y:auto">
+              <sc-for list="{{ d.rel.assets }}" as="a" hint-placeholder-count="3">
+                <li style="padding:6px 0;background:linear-gradient(to right,transparent,color-mix(in srgb,var(--color-text) 8%,transparent) 32px,color-mix(in srgb,var(--color-text) 8%,transparent) calc(100% - 32px),transparent) no-repeat bottom/100% 1px">
+                  <div style="display:flex;gap:10px;align-items:baseline;font-size:13px;min-width:0"><a href="{{ a.href }}" style="flex:1;min-width:0;display:flex;gap:8px;text-decoration:none"><span style="flex:none" aria-hidden="true">↓</span><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</span></a><span style="flex:none;font-size:11px;color:var(--color-neutral-600)">{{ a.size }}</span><span style="flex:none;width:44px;text-align:right;font-size:12.5px;color:var(--color-text)">{{ a.n }}</span></div>
+                  <div aria-hidden="true" style="margin:4px 54px 0 18px;height:3px;border-radius:2px;background:var(--color-neutral-800)"><div style="height:3px;border-radius:2px;width:{{ a.pct }};background:var(--color-accent-600)"></div></div>
+                </li>
+              </sc-for>
+            </ul>
+            <sc-if value="{{ d.hasOlder }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Earlier</span><sc-for list="{{ d.olderReleases }}" as="o" hint-placeholder-count="2"><div style="display:flex;gap:10px;align-items:baseline"><a href="{{ o.href }}" target="_blank" rel="noopener" style="text-decoration:none">{{ o.tag }}</a><span style="color:var(--color-neutral-600)">{{ o.date }}</span><span style="margin-left:auto;color:var(--color-neutral-300)">{{ o.n }}</span></div></sc-for></div>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{ d.noRelease }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-600)">No releases yet.</div></sc-if>
+        </section>
+        </div>
+        <section class="yd-n" aria-label="Notes" style="background:var(--color-surface);border-radius:var(--radius-md);padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px dashed var(--color-accent-800);gap:14px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Notes</span><span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-300);border:1px dashed var(--color-accent-700);border-radius:var(--radius-sm);padding:1px 6px;line-height:1.3">needs collector</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-500)">{{ d.notesMeta }}</span></div>
+          <sc-if value="{{ d.hasNotes }}" hint-placeholder-val="{{ true }}">
+            <div style="column-width:340px;column-gap:40px;column-rule:1px solid var(--color-divider);font-size:13.5px;line-height:1.55;color:var(--color-neutral-300)">
+              <sc-for list="{{ d.noteSections }}" as="s" hint-placeholder-count="3">
+                <div style="padding-bottom:16px;break-inside:avoid-column">
+                  <sc-if value="{{ s.hasTitle }}" hint-placeholder-val="{{ true }}">
+                    <div style="break-after:avoid;font-family:var(--font-heading);font-weight:500;font-size:13.5px;color:var(--color-text);margin-bottom:5px;display:flex;align-items:center;gap:8px"><span style="width:10px;height:1px;flex:none;background:var(--color-accent)"></span>{{ s.title }}</div>
+                  </sc-if>
+                  <sc-for list="{{ s.blocks }}" as="b" hint-placeholder-count="2">
+                    <sc-if value="{{ b.isP }}" hint-placeholder-val="{{ true }}"><p style="margin:0 0 7px;text-wrap:pretty">{{ b.text }}</p></sc-if>
+                    <sc-if value="{{ b.isList }}" hint-placeholder-val="{{ false }}">
+                      <ul style="margin:0 0 7px;padding-left:18px;display:flex;flex-direction:column;gap:3px">
+                        <sc-for list="{{ b.items }}" as="li" hint-placeholder-count="3"><li style="text-wrap:pretty">{{ li }}</li></sc-for>
+                      </ul>
+                    </sc-if>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.noNotes }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-600)">{{ d.noNotesText }}</div></sc-if>
+        </section>
+        <div class="yd-row yd-pair">
+        <section class="yd-c" aria-label="Recent commits" style="background:var(--color-surface);border-radius:var(--radius-md);padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px dashed var(--color-accent-800);gap:10px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Recent commits</span><span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-300);border:1px dashed var(--color-accent-700);border-radius:var(--radius-sm);padding:1px 6px;line-height:1.3">needs collector</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-500)">last {{ d.commitCount }}</span></div>
+          <sc-if value="{{ d.hasCommits }}" hint-placeholder-val="{{ true }}">
+            <ol style="list-style:none;margin:0;padding:0 6px 0 0;display:flex;flex-direction:column;max-height:372px;overflow-y:auto">
+              <sc-for list="{{ d.commits }}" as="c" hint-placeholder-count="8">
+                <li style="display:flex;gap:14px;align-items:baseline;padding:6px 0;font-size:13px;background:linear-gradient(to right,transparent,color-mix(in srgb,var(--color-text) 8%,transparent) 32px,color-mix(in srgb,var(--color-text) 8%,transparent) calc(100% - 32px),transparent) no-repeat bottom/100% 1px">
+                  <span style="flex:none;width:78px;color:var(--color-neutral-500);font-size:12px">{{ c.date }}</span>
+                  <a href="{{ c.href }}" target="_blank" rel="noopener" style="flex:1;min-width:0;color:var(--color-text);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.msg }}</a>
+                </li>
+              </sc-for>
+            </ol>
+          </sc-if>
+          <sc-if value="{{ d.noCommits }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-600)">Nothing pushed yet.</div></sc-if>
+        </section>
+        <section class="yd-i" aria-label="Open issues" style="background:var(--color-surface);border-radius:var(--radius-md);padding:18px 20px;display:flex;flex-direction:column;gap:12px;border:1px dashed var(--color-accent-800);gap:10px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="font-family:var(--font-heading);font-weight:500;font-size:15px">Open issues</span><span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-300);border:1px dashed var(--color-accent-700);border-radius:var(--radius-sm);padding:1px 6px;line-height:1.3">needs collector</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-500)">{{ d.issues }} open</span></div>
+          <sc-if value="{{ d.hasIssues }}" hint-placeholder-val="{{ true }}">
+            <ul style="list-style:none;margin:0;padding:0 6px 0 0;display:flex;flex-direction:column;max-height:372px;overflow-y:auto">
+              <sc-for list="{{ d.issueList }}" as="i" hint-placeholder-count="4">
+                <li style="display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:7px 0;font-size:13px;background:linear-gradient(to right,transparent,color-mix(in srgb,var(--color-text) 8%,transparent) 32px,color-mix(in srgb,var(--color-text) 8%,transparent) calc(100% - 32px),transparent) no-repeat bottom/100% 1px">
+                  <a href="{{ i.href }}" target="_blank" rel="noopener" style="flex:1 1 180px;min-width:0;color:var(--color-text);text-decoration:none">{{ i.title }}</a>
+                  <span style="display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ i.labels }}" as="l" hint-placeholder-count="1"><span class="tag tag-neutral" style="font-size:10px;padding:1px 7px">{{ l }}</span></sc-for></span>
+                  <span style="flex:none;color:var(--color-neutral-500);font-size:12px;width:40px;text-align:right">{{ i.age }}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
+          <sc-if value="{{ d.noIssues }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-600)">No open issues.</div></sc-if>
+        </section>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;hash&quot;,&quot;options&quot;:[&quot;hash&quot;,&quot;overview&quot;,&quot;detail-sample&quot;,&quot;detail-nostage&quot;,&quot;empty&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;full&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;compact&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;sourceError&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;States&quot;}}">
+const STAGES = ['Idea','Scoping','Design','Building','Testing','Live'];
+const NOW = new Date('2026-09-29T09:47:00');
+const DAY = 864e5;
+const ERR = 'oklch(0.74 0.13 25)';
+const WARN = 'oklch(0.8 0.1 80)';
+const OWNER = 'harbor-lab';
+const days = d => Math.floor((NOW - new Date(d)) / DAY);
+const ago = d => { if (!d) return '—'; const h = Math.floor((NOW - new Date(d)) / 36e5); if (h < 1) return 'just now'; if (h < 24) return h + 'h ago'; const dd = Math.floor(h / 24); if (dd < 90) return dd + 'd ago'; const m = Math.floor(dd / 30); if (m < 12) return m + 'mo ago'; return Math.floor(dd / 365) + 'y ago'; };
+const short = d => { if (!d) return '—'; const h = Math.floor((NOW - new Date(d)) / 36e5); if (h < 24) return h + 'h'; const dd = Math.floor(h / 24); if (dd < 90) return dd + 'd'; return Math.floor(dd / 30) + 'mo'; };
+const fmtN = n => n.toLocaleString('en-US');
+const iso = d => d ? new Date(d).toISOString().slice(0, 10) : '—';
+const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; }; };
+
+const SOURCE = { name: OWNER, kind: 'account', error: 'token expired', lastGood: '07:45' };
+
+const P = [
+  { name: 'Lanternfish', repo: 'lanternfish', social: [38,2,5], release: { tag: 'v0.1.0-alpha.2', date: '2026-09-22', pre: true, assets: [['lanternfish-0.1.0a2-x86_64.AppImage','16.8 MB',214],['lanternfish-0.1.0a2-1.x86_64.rpm','8.7 MB',87],['lanternfish-0.1.0a2.tar.gz','2.1 MB',31],['SHA256SUMS','312 B',12]], older: [['v0.1.0-alpha.1','2026-09-08',96]] }, summary: 'Offline-first RSS and newsletter reader for Linux.', category: 'Desktop', private: true, stage: 'Design', focus: true, next: 'M1: feed sync engine, headless', issues: 5, last: { msg: 'Conditional GET with ETag and Last-Modified', date: '2026-09-28T21:10' }, stageChanged: '2026-09-12', weeks: [0,0,2,3,5,4,6,7,5,8,9,7],
+    notes: '## Scope\nA reader that works fully offline. Feeds and newsletters land in one local library; nothing depends on a hosted service.\nTarget is a library of around 400 feeds. Search and read-later matter more than social features.\n## M1 · sync engine, headless\n- Fetch feeds on a schedule with conditional GET so unchanged feeds cost nothing\n- Parse RSS, Atom and JSON Feed into one article model\n- Store articles in SQLite with full-text search\n- Exit non-zero when more than 10% of feeds fail so a systemd timer can alert\nDone when a nightly job can refresh 400 feeds in under two minutes.\n## M2 · first UI\n- Three-pane layout, keyboard-first, unread counts per folder\n- Article HTML sanitised, remote images off by default\n- Read-later queue with estimated reading time\n## Open questions\n- Qt or GTK4 for M2? Leaning Qt for the list performance.\n- Do we dedupe articles that appear in two feeds? Issue open.\n- Import newsletters over IMAP or a local mail drop?\n## Decisions\n- 2026-09-12 · No hosted sync service\n- 2026-09-18 · Python + asyncio for M1; revisit for M2\n- 2026-09-24 · One SQLite file per library',
+    commitMsgs: ['Conditional GET with ETag and Last-Modified','Parse JSON Feed 1.1','Persist articles in SQLite','FTS5 index on title and body','Sanitise article HTML','OPML import','Per-feed fetch interval','Back off on 429 and 503','Headless mode: refresh without a window','Config file in ~/.config/lanternfish','Log failing feeds with status codes','Unit tests for Atom date parsing','Move fetch loop to asyncio','Article model shared by all parsers','Initial scaffold'],
+    issueList: [['Duplicate articles when a post is in two feeds', ['bug','sync'], '2026-09-26'],['Headless refresh should exit non-zero past a failure threshold', ['headless'], '2026-09-24'],['Decide on GTK4 vs Qt for the first UI', ['design'], '2026-09-18'],['Newsletter import path', ['enhancement'], '2026-09-09'],['Feeds with broken dates sort to the top', ['bug'], '2026-08-30']] },
+  { name: 'Patchbay', repo: 'patchbay', social: [214,17,9], release: { tag: 'v0.4.0', date: '2026-09-18', assets: [['patchbay-0.4.0-1.x86_64.rpm','4.2 MB',1342],['patchbay-0.4.0-linux-x86_64.tar.gz','3.9 MB',488],['99-macropad.rules','1 KB',903],['SHA256SUMS','248 B',41]], older: [['v0.3.1','2026-08-29',2210],['v0.3.0','2026-08-11',1655],['v0.2.0','2026-07-04',740]] }, summary: 'Daemon for USB macro pads on Linux.', category: 'Desktop', private: true, stage: 'Building', focus: false, next: 'Bring-up on the 15-key and 32-key boards', issues: 7, last: { msg: 'Parse 32-key HID report descriptor', date: '2026-09-29T00:42' }, stageChanged: '2026-08-30', weeks: [3,4,2,5,6,4,7,5,6,8,6,9],
+    notes: 'Talks HID directly, no vendor software. Keys map to desktop shortcuts over D-Bus.',
+    commitMsgs: ['Parse 32-key HID report descriptor','Brightness control over USB','Page switching on long press','Render key images with Cairo','Reconnect when the pad is unplugged','Desktop shortcuts via D-Bus','Config hot reload','systemd user unit','32-key layout map','Initial daemon loop'],
+    issueList: [['32-key: bottom row not registering', ['hardware','bug'], '2026-09-27'],['15-key brightness resets after sleep', ['hardware'], '2026-09-25'],['Debounce on key release', ['bug'], '2026-09-22'],['Wayland: get active window title', ['desktop'], '2026-09-15'],['Profiles per active window', ['enhancement'], '2026-09-10'],['Icon packs', ['enhancement'], '2026-09-02'],['Document the udev rule', ['docs'], '2026-08-28']] },
+  { name: 'Tidepool', repo: 'tidepool', social: [3,0,1], release: { tag: 'v0.3.0', date: '2026-09-21', pre: true, assets: [['tidepool-0.3.0.pyz','412 KB',6],['tidepool.service','1 KB',4],['example-sensors.yml','1 KB',5]], older: [['v0.2.0','2026-09-09',8],['v0.1.0','2026-08-26',3]] }, summary: 'Home sensor dashboard for the garden and greenhouse.', category: 'Homelab', private: true, stage: 'Testing', focus: true, next: 'First week-long run on the real sensors', issues: 4, last: { msg: 'Collector: keep last good reading per sensor', date: '2026-09-28T18:05' }, stageChanged: '2026-09-26', weeks: [0,0,0,1,3,4,6,5,8,9,11,10],
+    notes: 'One static page, rebuilt every 5 min from MQTT readings. LAN only.',
+    commitMsgs: ['Collector: keep last good reading per sensor','Frost warning threshold','Compact phone layout','Per-sensor detail pages','Sparkline from hourly averages','Sensor config validation','Stale flag after 30 min','Initial static render'],
+    issueList: [['Week-long run on real sensors', ['collector'], '2026-09-27'],['Battery level per probe', ['ui'], '2026-09-25'],['Phone layout sizing', ['ui'], '2026-09-21'],['Write the sensor config spec', ['docs'], '2026-09-14']] },
+  { name: 'Lodestar', repo: 'lodestar', social: [61,8,4], release: { tag: 'v0.1.0', date: '2026-08-20', pre: true, assets: [['lodestar_0.1.0_linux_amd64.tar.gz','6.8 MB',356],['lodestar_0.1.0_windows_amd64.zip','7.1 MB',612],['checksums.txt','190 B',22]], older: [] }, summary: 'Game server admin CLI (Go).', category: 'Gaming', private: true, stage: 'Design', focus: false, next: '', issues: 3, last: { msg: 'RCON client: reconnect with backoff', date: '2026-09-19T20:30' }, stageChanged: '2026-08-14', weeks: [2,1,3,2,1,2,0,1,2,1,0,1],
+    commitMsgs: ['RCON client: reconnect with backoff','Player list with IDs','World backup before restart','Cobra CLI skeleton','go mod init'],
+    issueList: [['RCON drops after server restart', ['bug'], '2026-09-20'],['Kick and ban from the CLI', ['enhancement'], '2026-09-05'],['Back up the world before a reset', ['enhancement'], '2026-08-22']] },
+  { name: 'Herbarium', repo: 'herbarium', social: [0,0,1], summary: 'Plant identification journal with photo notes.', category: 'Personal', private: true, stage: 'Design', paused: true, focus: false, next: 'Choose an on-device image model', issues: 2, last: { msg: 'Notes on photo metadata', date: '2026-06-02T22:15' }, stageChanged: '2026-05-11', weeks: [0,0,0,0,0,0,0,0,0,0,0,0],
+    notes: 'Paused until Lanternfish M1 ships.',
+    commitMsgs: ['Notes on photo metadata','Import photos with EXIF location','Design doc v1'],
+    issueList: [['Choose an on-device model', ['design'], '2026-06-01'],['Offline species list format', ['design'], '2026-05-20']] },
+  { name: 'Ledgerline', repo: 'ledgerline', social: [0,0,1], summary: 'Offline invoicing for a small bakery.', category: 'Side work', private: true, stage: 'Scoping', focus: false, next: 'Pin down v1 with the client', issues: 1, last: null, stageChanged: '2026-09-20', weeks: [0,0,0,0,0,0,0,0,0,0,0,0],
+    issueList: [['Agree v1 scope with the client', ['scoping'], '2026-09-20']] },
+  { name: 'Fernbridge', repo: 'fernbridge', social: [12,3,2], release: { tag: 'v1.2.0', date: '2026-07-30', assets: [['fernbridge-1.2.0.tar.gz','88 KB',9],['fernbridge.timer','1 KB',7]], older: [['v1.1.0','2026-05-20',14],['v1.0.0','2026-03-15',11]] }, summary: 'Two-way sync between CalDAV tasks and a kanban board.', category: 'Tools', private: true, stage: 'Live', focus: false, next: '', issues: 2, last: { msg: 'Map task priorities to board labels', date: '2026-07-31T09:12' }, stageChanged: '2026-03-15', weeks: [0,0,0,0,0,0,0,0,0,0,0,0],
+    commitMsgs: ['Map task priorities to board labels','Nightly sync timer','Card to VTODO mapping','Initial sync script'],
+    issueList: [['Board API 500 on card update', ['bug'], '2026-08-15'],['Recurring tasks duplicate on sync', ['bug'], '2026-08-02']] },
+  { name: 'Marginalia', repo: 'marginalia', social: [4,0,1], summary: 'Desktop clock and agenda widget.', category: 'Desktop', private: true, stage: null, focus: false, next: '', issues: 0, last: { msg: 'Widget skeleton', date: '2026-09-27T16:40' }, stageChanged: null, weeks: [0,0,0,0,0,0,0,0,0,0,2,3],
+    commitMsgs: ['Widget skeleton','QML main view','Metadata and icon','Init'] },
+  { name: 'Workstation setup', repo: 'workstation-setup', social: [7,1,1], summary: 'Post-install script for a fresh laptop.', category: 'Personal', private: true, stage: null, stageError: 'stage "Shipping" is not one of Idea, Scoping, Design, Building, Testing, Live', focus: false, next: '', issues: 0, last: { msg: 'Add Flatpak list', date: '2026-09-15T19:20' }, stageChanged: null, weeks: [1,0,1,0,2,0,1,0,0,1,0,1],
+    commitMsgs: ['Add Flatpak list','Set desktop defaults','Install dev toolchain','First pass'] },
+  { name: 'Beacon relay', repo: 'beacon-relay', social: [142,21,6], release: { tag: 'v1.0.3', date: '2026-01-10', assets: [['beacon-relay-1.0.3.zip','1.2 MB',1876]], older: [['v1.0.2','2025-12-14',3120],['v1.0.0','2025-11-20',2405]] }, summary: 'Chat relay for the old game server. Superseded by Lodestar.', category: 'Gaming', private: false, stage: 'Live', archived: true, focus: false, next: '', issues: 0, last: { msg: 'Archive: superseded by Lodestar', date: '2026-02-20T10:00' }, stageChanged: '2025-12-01', weeks: [0,0,0,0,0,0,0,0,0,0,0,0],
+    commitMsgs: ['Archive: superseded by Lodestar','Post join/leave events','Webhook setup'] },
+];
+
+function enrich(p) {
+  const idx = STAGES.indexOf(p.stage);
+  const hasStage = idx >= 0, err = !!p.stageError, noStage = !hasStage && !err;
+  const total12 = p.weeks.reduce((a, b) => a + b, 0);
+  const lastDays = p.last ? days(p.last.date) : null;
+  const noCommits = !p.last;
+  const quiet = lastDays != null && lastDays >= 30 && !p.archived && !p.paused;
+  const stale = hasStage && p.last && days(p.stageChanged) > 30 && new Date(p.last.date) > new Date(p.stageChanged);
+  let flag = null, flagColor = 'var(--color-neutral-500)';
+  if (err) { flag = 'Invalid stage file'; flagColor = ERR; }
+  else if (noStage) { flag = 'No stage file'; flagColor = 'var(--color-accent-300)'; }
+  else if (p.archived) { flag = 'Archived'; }
+  else if (p.paused) { flag = 'Paused'; }
+  else if (noCommits) { flag = 'No commits yet'; flagColor = WARN; }
+  else if (quiet) { flag = 'Quiet · ' + lastDays + 'd'; flagColor = WARN; }
+  else if (stale) { flag = 'Stage may be out of date'; flagColor = WARN; }
+  const steps = STAGES.map((s, i) => {
+    const base = { label: s, grow: i ? 1 : 0, bs: 'solid', shadow: 'none', shadowSm: 'none' };
+    if (hasStage) {
+      if (i < idx) return { ...base, bg: 'var(--color-neutral-500)', dbg: 'var(--color-neutral-500)', border: 'var(--color-neutral-500)', conn: 'var(--color-neutral-500)', lc: 'var(--color-neutral-400)' };
+      if (i === idx) return { ...base, bg: 'var(--color-accent)', dbg: 'var(--color-accent)', border: 'var(--color-accent)', conn: 'var(--color-neutral-500)', shadow: '0 0 0 3px var(--color-accent-900), 0 0 10px var(--color-accent-600)', shadowSm: '0 0 0 2px var(--color-accent-900), 0 0 6px var(--color-accent-600)', lc: 'var(--color-text)' };
+      return { ...base, bg: 'transparent', dbg: 'var(--color-surface)', border: 'var(--color-neutral-700)', conn: 'var(--color-neutral-800)', lc: 'var(--color-neutral-600)' };
+    }
+    if (err) return { ...base, bs: 'dotted', bg: 'transparent', dbg: 'var(--color-surface)', border: ERR, conn: 'var(--color-neutral-800)', lc: 'var(--color-neutral-600)' };
+    return { ...base, bs: 'dashed', bg: 'transparent', dbg: 'var(--color-surface)', border: 'var(--color-accent-600)', conn: 'var(--color-accent-900)', lc: 'var(--color-neutral-600)' };
+  });
+  const pct = hasStage ? (idx / 5) * 100 : 0;
+  const lineBg = hasStage ? `linear-gradient(to right, var(--color-neutral-500) ${pct}%, var(--color-neutral-800) ${pct}%)` : (err ? 'var(--color-neutral-800)' : 'var(--color-accent-900)');
+  const mx = Math.max(1, ...p.weeks);
+  const bars = p.weeks.map((w, i) => ({ h: (w ? Math.max(3, Math.round(w / mx * 22)) : 2) + 'px', bg: w ? (i === 11 ? 'var(--color-accent-500)' : 'var(--color-neutral-500)') : 'var(--color-neutral-800)' }));
+  const stageLabel = hasStage ? p.stage : noStage ? 'No stage file' : 'Invalid stage';
+  const stageSub = hasStage ? 'changed ' + ago(p.stageChanged) : noStage ? 'to do' : 'see file';
+  const stageColor = hasStage ? 'var(--color-text)' : noStage ? 'var(--color-accent-300)' : ERR;
+  const repoUrl = 'https://github.com/' + OWNER + '/' + p.repo;
+  const issueList = (p.issueList || []).map(([title, labels, d], i) => ({ title, labels, age: short(d), href: repoUrl + '/issues/' + (i + 1) }));
+  return {
+    ...p, owner: OWNER, idx, hasStage, noStage, stageError: err, stageErrorText: p.stageError || '', total12, noCommits, quiet, stale,
+    flag, hasFlag: !!flag, flagColor, steps, lineBg, bars, stageLabel, stageSub, stageColor, stageIdx1: idx + 1,
+    href: '#/' + OWNER + '/' + p.repo, repoUrl, lastUrl: p.last ? repoUrl + '/commits' : '#',
+    opacity: p.paused || p.archived ? 0.5 : 1,
+    nextText: p.next || (hasStage ? 'No next step' : noStage ? 'Set in the stage file' : 'No next step'), nextColor: p.next ? 'var(--color-text)' : 'var(--color-neutral-600)',
+    lastText: p.last ? ago(p.last.date) : 'none', lastShort: p.last ? short(p.last.date) : '—', lastDate: p.last ? iso(p.last.date) : '—',
+    lastMsg: p.last ? p.last.msg : 'No commits yet', lastColor: quiet || noCommits ? WARN : 'var(--color-neutral-300)',
+    visibility: (p.private ? 'Private' : 'Public') + (p.archived ? ' · archived' : ''), visibilityLower: p.private ? 'private' : 'public',
+    stageChangedText: p.stageChanged ? ago(p.stageChanged) : '—', stageChangedDate: iso(p.stageChanged), stageChangedShort: p.stageChanged ? short(p.stageChanged) : '—',
+    stageAria: stageLabel + (hasStage ? ', stage ' + (idx + 1) + ' of 6' : ''),
+    barsAria: total12 + ' commits over the last 12 weeks',
+    aria: p.name + ', ' + stageLabel + (flag ? ', ' + flag : '') + ', next: ' + (p.next || 'none'),
+    issueList, topIssues: issueList.slice(0, 3), issuesHeading: issueList.length ? 'Open issues' : 'No open issues',
+  };
+}
+
+// Notes are markdown-lite: "## " starts a section, "- " a bullet, any other line a paragraph.
+function parseNotes(txt) {
+  if (!txt) return [];
+  const secs = []; let cur = null, list = null;
+  const sec = t => { cur = { title: t, hasTitle: !!t, blocks: [] }; secs.push(cur); list = null; };
+  for (const raw of txt.split('\n')) {
+    const l = raw.trim();
+    if (l.startsWith('## ')) { sec(l.slice(3)); continue; }
+    if (!cur) sec('');
+    if (!l) { list = null; continue; }
+    if (l.startsWith('- ')) { if (!list) { list = { isList: true, isP: false, items: [] }; cur.blocks.push(list); } list.items.push(l.slice(2)); continue; }
+    list = null; cur.blocks.push({ isP: true, isList: false, text: l });
+  }
+  return secs.filter(s => s.blocks.length);
+}
+
+function detail(p) {
+  const rnd = hash(p.repo);
+  const w52 = Array.from({ length: 40 }, (_, i) => p.noCommits || p.archived || (p.paused && i > 20) ? 0 : Math.max(0, Math.round(rnd() * (Math.max(...p.weeks) || 3) * 0.9 - 0.4))).concat(p.weeks);
+  const mx = Math.max(1, ...w52);
+  const start = new Date(NOW - 52 * 7 * DAY);
+  const bars52 = w52.map((w, i) => ({ h: (w ? Math.max(3, Math.round(w / mx * 64)) : 2) + 'px', bg: w ? (i >= 40 ? (i === 51 ? 'var(--color-accent-500)' : 'var(--color-neutral-400)') : 'var(--color-neutral-700)') : 'var(--color-neutral-800)', title: w + ' commits, week of ' + iso(new Date(start.getTime() + i * 7 * DAY)) }));
+  const total52 = w52.reduce((a, b) => a + b, 0);
+  const msgs = p.commitMsgs || (p.last ? [p.last.msg] : []);
+  let t = p.last ? new Date(p.last.date).getTime() : 0;
+  const commits = msgs.map((m, i) => { if (i) t -= (0.4 + rnd() * 3.5) * DAY; return { msg: m, date: iso(new Date(t)), href: p.repoUrl + '/commit/' + Math.floor(rnd() * 1e9).toString(16) }; });
+  return {
+    ...p, bars52, total52, chartStart: iso(start).slice(0, 7), bars52Aria: total52 + ' commits over 52 weeks',
+    commits, commitCount: commits.length, hasCommits: commits.length > 0, hasIssues: p.issueList.length > 0, noIssues: p.issueList.length === 0,
+    ...(() => { const r = p.release; if (!r) return { hasRelease: false, noRelease: true, rel: null, hasOlder: false, olderReleases: [], allTime: '0' }; const base = p.repoUrl + '/releases'; return { hasRelease: true, noRelease: false, rel: { tag: r.tag, pre: !!r.pre, date: r.date, ago: ago(r.date), href: base + '/tag/' + r.tag, assets: r.assets.map(([name, size, n]) => ({ name, size, n: fmtN(n), pct: Math.max(2, Math.round(n / Math.max(...r.assets.map(a => a[2])) * 100)) + '%', href: base + '/download/' + r.tag + '/' + name })), total: fmtN(r.assets.reduce((s, a) => s + a[2], 0)) }, hasOlder: r.older.length > 0, olderReleases: r.older.map(([t, d, n]) => ({ tag: t, date: d, n: fmtN(n), href: base + '/tag/' + t })), allTime: fmtN(r.assets.reduce((s, a) => s + a[2], 0) + r.older.reduce((s, o) => s + o[2], 0)) }; })(),
+    stars: fmtN((p.social || [0])[0]), forks: fmtN((p.social || [0,0])[1]), watchers: fmtN((p.social || [0,0,0])[2]),
+    notes: p.notes || '', hasNotes: !!p.notes, noNotes: !p.notes, noteSections: parseNotes(p.notes), notesCols: (p.notes || '').length > 700 ? 2 : 1,
+    notesMeta: (() => { const n = parseNotes(p.notes).filter(s => s.hasTitle).length; return (n > 1 ? n + ' sections · ' : '') + '.yard/stage.yml'; })(), noNotesText: p.hasStage ? 'No notes in the stage file.' : 'Notes come from the stage file.',
+  };
+}
+
+const ALL = P.map(enrich);
+
+class Component extends DCLogic {
+  state = { route: typeof location !== 'undefined' ? location.hash : '', filter: 'all', cat: 'all', sort: 'stage' };
+  componentDidMount() { this._h = () => this.setState({ route: location.hash }); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+  renderVals() {
+    const layout = this.props.layout ?? 'full';
+    const view = this.props.view ?? 'hash';
+    const hasSourceError = this.props.sourceError ?? false;
+    const routes = { overview: '', 'detail-sample': '#/harbor-lab/lanternfish', 'detail-nostage': '#/harbor-lab/marginalia', empty: '' };
+    const route = view in routes ? routes[view] : this.state.route;
+    const m = /^#\/([^/]+)\/([^/]+)/.exec(route || '');
+    const isDetail = !!m, isCompact = !m && layout === 'compact', isOverview = !m && !isCompact;
+    const filter = view === 'empty' ? 'stage:Idea' : this.state.filter;
+    const cat = view === 'empty' ? 'cat:Gaming' : this.state.cat;
+    const { sort } = this.state;
+
+    const cats = [...new Set(P.map(p => p.category))];
+    const match1 = (p, f) => f === 'all' || (f === 'focus' && p.focus) || (f === 'nostage' && p.noStage) || (f === 'invalid' && p.stageError) || (f === 'paused' && p.paused) || f === 'stage:' + p.stage;
+    const matchC = (p, c) => c === 'all' || c === 'cat:' + p.category;
+    const match = (p, f, c) => match1(p, f) && matchC(p, c);
+    const on = 'var(--color-accent-200)', off = 'var(--color-neutral-400)';
+    const stripItem = (key, label, color, big) => {
+      const active = filter === key, n = ALL.filter(p => match(p, key, cat)).length;
+      return { key, label, n, button: true, active, size: big ? '30px' : '22px', onClick: () => this.setState({ filter: active && key !== 'all' ? 'all' : key }),
+        bg: active ? 'var(--color-accent-900)' : 'transparent', ring: active ? 'inset 0 0 0 1px var(--color-accent-700)' : 'none',
+        color: active ? on : (n ? color : 'var(--color-neutral-600)'), labelColor: active ? 'var(--color-accent-300)' : 'var(--color-neutral-500)' };
+    };
+    const strip = [stripItem('all', 'projects', 'var(--color-text)', true), stripItem('focus', 'Focus', 'var(--color-text)'), { gap: true, key: 'g1' },
+      ...STAGES.map(s => stripItem('stage:' + s, s, 'var(--color-text)')), { gap: true, key: 'g2' },
+      stripItem('paused', 'Paused', 'var(--color-neutral-400)'), stripItem('nostage', 'No stage file', 'var(--color-accent-300)'), stripItem('invalid', 'Invalid stage', ERR)];
+    const chip = (key, label) => { const active = cat === key; return { key, label, button: true, n: ALL.filter(p => match(p, filter, key)).length, active, onClick: () => this.setState({ cat: key }), bg: active ? 'var(--color-accent-900)' : 'transparent', color: active ? on : off, border: active ? 'var(--color-accent-700)' : 'var(--color-neutral-800)' }; };
+    const chips = [chip('all', 'All categories'), { divider: true, key: 'd1' }, ...cats.map(c => chip('cat:' + c, c))];
+    const compactFilters = ['all', 'focus'].map(k => ({ key: k, label: k === 'all' ? 'All' : 'Focus', active: filter === k, onClick: () => this.setState({ filter: k }) }));
+
+    const sorters = {
+      stage: (a, b) => (b.idx - a.idx) || a.name.localeCompare(b.name),
+      recent: (a, b) => ((b.last ? +new Date(b.last.date) : 0) - (a.last ? +new Date(a.last.date) : 0)),
+      quiet: (a, b) => ((a.last ? +new Date(a.last.date) : 0) - (b.last ? +new Date(b.last.date) : 0)),
+      name: (a, b) => a.name.localeCompare(b.name),
+    };
+    const list = ALL.filter(p => match(p, filter, cat)).sort(sorters[sort]);
+    let groups;
+    if (filter !== 'focus' && list.some(p => p.focus)) {
+      groups = [{ label: 'Focus', hasLabel: true, color: 'var(--color-accent)', items: list.filter(p => p.focus) }, { label: 'Everything else', hasLabel: true, color: 'var(--color-neutral-500)', items: list.filter(p => !p.focus) }];
+    } else groups = [{ label: '', hasLabel: false, color: '', items: list }];
+
+    let d = null, notFound = false;
+    if (isDetail) { const p = ALL.find(p => p.owner === m[1] && p.repo === m[2]); if (p) d = detail(p); else notFound = true; }
+    const activeLabels = [strip.find(s => s.button && s.active && s.key !== 'all')?.label, chips.find(c => c.button && c.active && c.key !== 'all')?.label].filter(Boolean).join(' in ') || 'this filter';
+    return {
+      isOverview, isDetail, isCompact, refreshedAt: '09:45',
+      sources: [{ name: SOURCE.name, dot: hasSourceError ? ERR : 'var(--color-neutral-400)', title: SOURCE.kind + (hasSourceError ? ' · ' + SOURCE.error : ' · ok') }],
+      sourceErrors: hasSourceError ? [SOURCE] : [], hasSourceError, compactErrorText: SOURCE.name + ': ' + SOURCE.error + ' · data from ' + SOURCE.lastGood,
+      strip, chips, compactFilters, sort, setSort: e => this.setState({ sort: e.target.value }),
+      groups, isEmpty: list.length === 0, emptyHint: 'No project matches ' + activeLabels + '.', clearFilter: () => this.setState({ filter: 'all', cat: 'all' }),
+      d, hasDetail: !!d, notFound, routeText: route.slice(2),
+    };
+  }
+}
+</script>
+</body>
+</html>

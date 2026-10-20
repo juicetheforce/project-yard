@@ -19,6 +19,11 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
 - [decided] Replaces the earlier hosted claude.ai "Project yard" page (its data has been deleted).
 - [decided] UI v2 follows the Claude Design mockups in `docs/design/` (Nocturne tokens): overview, compact
   layout ≤560px for the KDE panel popup, `#/owner/repo` detail pages. Inter is not loaded from Google Fonts.
+- [decided] 2026-10-19: UI v3 replaces v2. The handoff is kept unchanged in `docs/design/v3/`; where the
+  build differs (stage file name, traffic, settings, compact by width, field names) is listed in
+  `docs/design/README.md`. The collector adds each release's `isPrerelease` and its assets' name, size and
+  download link for the Releases panel. [confirmed] 2026-10-19: both queries validate against GitHub's
+  published GraphQL schema (`schema.docs.graphql`). Not yet run against a live token.
 - [decided] Weeks run Monday 00:00 UTC. Every refresh fetches 12 weekly counts; the detail page's 52-week
   chart comes from a per-repo query cached in `last-good.json`, re-run only after a push and at most daily.
 - [confirmed] 2026-09-29 cost on api.github.com (12 repos): refresh = 7 rate-limit points, ~4 s; first run with
@@ -94,6 +99,8 @@ The owner wants one place to see what's in flight, what stage each is at, and wh
   - [confirmed] 2026-10-02: GitHub metrics (traffic history, stars/forks/watchers, release downloads) and the
     show/hide settings screen built and tested against fixtures (`dev/demo.py`). Run live the same day:
     traffic read for all 6 public repos of juicetheforce; see the v0.3 decisions above.
+  - 2026-10-19: UI v3 built from the handoff and checked against fixtures at 1920, 5120 and 420 wide, plus
+    detail pages (public repo with traffic, repo with no stage file) and settings. Awaiting review; not released.
 - M5+ Re-evaluate: filters, second source (an org), anything the live board shows is missing.
 
 ## Testing

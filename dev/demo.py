@@ -44,6 +44,25 @@ def stage_file(stage, next_step, summary, category, **extra):
     return "\n".join(lines)
 
 
+HARBOR_NOTES = """## Scope
+Notes that work fully offline and sync between my laptop and phone. Nothing depends on a hosted service.
+Target is a few thousand notes; search matters more than sharing.
+
+## M1 · sync engine
+- Local-first: the server only relays encrypted blobs
+- Conflict resolution: last writer wins per field
+- Retry with backoff when the relay is unreachable
+Done when two devices converge after a day offline.
+
+## Open questions
+- Mobile shell, or PWA only?
+- Do attachments sync, or stay local?
+
+## Decisions
+- 2026-09-12 · No hosted sync service
+- 2026-09-24 · One SQLite file per vault"""
+
+
 # name, stage file text, days since last commit, weekly commit pattern (oldest→newest, 52),
 # commit messages (newest first), issues [(title, labels, days ago)], archived
 def weeks(active_from, active_to, base):
@@ -52,7 +71,7 @@ def weeks(active_from, active_to, base):
 
 PROJECTS = [
     ("harbor", stage_file("building", "Wire the sync engine to the real API", "Offline-first notes app with end-to-end sync.",
-                          "Personal", focus=True, notes="Local-first: the server only relays encrypted blobs.\nConflict resolution: last writer wins per field.\nOpen: mobile shell, or PWA only?"),
+                          "Personal", focus=True, notes=HARBOR_NOTES),
      1, weeks(20, 51, 4), ["Sync: retry with backoff", "Encrypt blobs before upload", "Field-level merge", "Settings screen",
                            "Export to Markdown", "Search index in a worker", "First sync prototype", "Initial scaffold"],
      [("Sync loses edits made while offline", ["bug", "sync"], 3), ("Decide on a mobile shell", ["design"], 12),
@@ -85,10 +104,7 @@ def fake_repo(name, stage_text, last_days, weekly, messages, issues, archived):
         "name": name, "nameWithOwner": f"example-user/{name}", "url": "#", "description": None,
         "isPrivate": name != "weather-station", "isArchived": archived, "isFork": False,
         "stargazerCount": len(name) * 3, "forkCount": len(name) // 3, "watchers": {"totalCount": len(name) // 2},
-        "releases": {"totalCount": 12 if name == "harbor" else 0, "nodes": [
-            {"name": f"v0.{n}", "tagName": f"v0.{n}", "url": "#", "publishedAt": ts(n * 9), "isDraft": False,
-             "releaseAssets": {"nodes": [{"downloadCount": 40 - n * 3}, {"downloadCount": 12 - n}]}}
-            for n in range(10)] if name == "harbor" else []},
+        "releases": RELEASES.get(name, {"totalCount": 0, "nodes": []}),
         "pushedAt": ts(last_days) if last_days is not None else None,
         "stageFile": {"text": stage_text} if stage_text else None,
         "issues": {"totalCount": len(issues), "nodes": [
@@ -98,6 +114,22 @@ def fake_repo(name, stage_text, last_days, weekly, messages, issues, archived):
         "_weekly": weekly,
     }
 
+
+def release(tag, days_ago, assets, pre=False):
+    return {"name": tag, "tagName": tag, "url": "#", "publishedAt": ts(days_ago), "isDraft": False, "isPrerelease": pre,
+            "releaseAssets": {"nodes": [{"name": n, "size": size, "downloadUrl": "#", "downloadCount": c} for n, size, c in assets]}}
+
+
+# harbor: 12 releases, of which the newest 10 are fetched, latest a pre-release.
+RELEASES = {
+    "harbor": {"totalCount": 12, "nodes": [
+        release("v0.10.0-beta.1", 6, [("harbor-0.10.0b1-x86_64.AppImage", 17_600_000, 214), ("harbor-0.10.0b1-1.x86_64.rpm", 9_100_000, 87),
+                                      ("harbor-0.10.0b1.tar.gz", 2_200_000, 31), ("SHA256SUMS", 312, 12)], pre=True),
+        *[release(f"v0.{n}.0", 6 + (10 - n) * 9, [("harbor.tar.gz", 2_000_000, 30 + n * 4), ("SHA256SUMS", 300, n)]) for n in range(9, 0, -1)]]},
+    "weather-station": {"totalCount": 2, "nodes": [
+        release("v1.2.0", 30, [("weather-station-1.2.0.tar.gz", 88_000, 9), ("weather.timer", 900, 7)]),
+        release("v1.1.0", 120, [("weather-station-1.1.0.tar.gz", 85_000, 14)])]},
+}
 
 REPOS = [fake_repo(*p) for p in PROJECTS]
 

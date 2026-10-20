@@ -80,7 +80,10 @@ query($owner: String!, $cursor: String, %s) {
         stargazerCount forkCount watchers { totalCount }
         releases(first: %d, orderBy: {field: CREATED_AT, direction: DESC}) {
           totalCount
-          nodes { name tagName url publishedAt isDraft releaseAssets(first: %d) { nodes { downloadCount } } }
+          nodes {
+            name tagName url publishedAt isDraft isPrerelease
+            releaseAssets(first: %d) { nodes { name size downloadUrl downloadCount } }
+          }
         }
         stageFile: object(expression: "HEAD:.project.toml") { ... on Blob { text } }
         issues(states: OPEN, first: %d, orderBy: {field: CREATED_AT, direction: DESC}) {
@@ -388,10 +391,16 @@ def shape(repo, owner, year, now):
             "tag": r["tagName"],
             "url": r["url"],
             "publishedAt": r.get("publishedAt"),
-            "downloads": sum(a["downloadCount"] for a in (r.get("releaseAssets") or {}).get("nodes") or []),
+            "prerelease": bool(r.get("isPrerelease")),
+            "assets": [
+                {"name": a["name"], "size": a.get("size", 0), "url": a.get("downloadUrl"), "downloads": a["downloadCount"]}
+                for a in (r.get("releaseAssets") or {}).get("nodes") or [] if a
+            ],
         }
         for r in (repo.get("releases") or {}).get("nodes") or [] if r and not r.get("isDraft")
     ]
+    for r in releases:
+        r["downloads"] = sum(a["downloads"] for a in r["assets"])
     stage_hist = ((target.get("stageHistory") or {}).get("nodes") or [None])[0]
 
     # 52 weeks: this refresh's counts where we have them, the cached year for older
